@@ -113,6 +113,18 @@ struct UtilityAreaTerminalView: View {
                                     DispatchQueue.main.async { [weak utilityAreaViewModel] in
                                         utilityAreaViewModel?.updateTerminal(id, title: newTitle)
                                     }
+                                },
+                                onCurrentDirectoryChange: { [weak selectedTerminal] directory in
+                                    guard
+                                        let id = selectedTerminal?.id,
+                                        let url = terminalDirectoryURL(from: directory)
+                                    else {
+                                        return
+                                    }
+
+                                    DispatchQueue.main.async { [weak utilityAreaViewModel] in
+                                        utilityAreaViewModel?.updateTerminal(id, url: url)
+                                    }
                                 }
                             )
                             .frame(height: max(0, constrainedHeight - 1))
@@ -183,5 +195,17 @@ struct UtilityAreaTerminalView: View {
                 EffectView(.contentBackground)
             }
         }
+    }
+
+    private func terminalDirectoryURL(from directory: String?) -> URL? {
+        guard let directory, !directory.isEmpty else {
+            return nil
+        }
+
+        if let url = URL(string: directory), url.isFileURL {
+            return url
+        }
+
+        return URL(filePath: directory, directoryHint: .isDirectory)
     }
 }

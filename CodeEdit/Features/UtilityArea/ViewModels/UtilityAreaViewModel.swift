@@ -11,6 +11,40 @@ import SwiftUI
 ///
 /// A model class to host and manage data for the Utility area.
 class UtilityAreaViewModel: ObservableObject {
+    private struct TerminalRestorationState: Codable {
+        let terminals: [TerminalRestorationItem]
+        let selectedTerminalIDs: [UUID]
+    }
+
+    private struct TerminalRestorationItem: Codable {
+        let id: UUID
+        let url: URL
+        let title: String
+        let terminalTitle: String
+        let shellRawValue: String?
+        let customTitle: Bool
+
+        init(_ terminal: UtilityAreaTerminal) {
+            self.id = terminal.id
+            self.url = terminal.url
+            self.title = terminal.title
+            self.terminalTitle = terminal.terminalTitle
+            self.shellRawValue = terminal.shell?.rawValue
+            self.customTitle = terminal.customTitle
+        }
+
+        func restoredTerminal() -> UtilityAreaTerminal {
+            let terminal = UtilityAreaTerminal(
+                id: id,
+                url: url,
+                title: title,
+                shell: shellRawValue.flatMap(Shell.init(rawValue:))
+            )
+            terminal.terminalTitle = terminalTitle
+            terminal.customTitle = customTitle
+            return terminal
+        }
+    }
 
     @Published var selectedTab: UtilityAreaTab? = .terminal
 
@@ -42,12 +76,37 @@ class UtilityAreaViewModel: ObservableObject {
         isCollapsed = workspace.getFromWorkspaceState(.utilityAreaCollapsed) as? Bool ?? false
         currentHeight = workspace.getFromWorkspaceState(.utilityAreaHeight) as? Double ?? 300.0
         isMaximized = workspace.getFromWorkspaceState(.utilityAreaMaximized) as? Bool ?? false
+
+        guard
+            let data = workspace.getFromWorkspaceState(.openTerminals) as? Data,
+            let restoredState = try? JSONDecoder().decode(TerminalRestorationState.self, from: data)
+        else {
+            return
+        }
+
+        terminals = restoredState.terminals.map { $0.restoredTerminal() }
+
+        let restoredIDs = Set(terminals.map(\.id))
+        selectedTerminals = Set(restoredState.selectedTerminalIDs.filter { restoredIDs.contains($0) })
+
+        if selectedTerminals.isEmpty, let terminal = terminals.last {
+            selectedTerminals = [terminal.id]
+        }
     }
 
     func saveRestorationState(_ workspace: WorkspaceDocument) {
         workspace.addToWorkspaceState(key: .utilityAreaCollapsed, value: isCollapsed)
         workspace.addToWorkspaceState(key: .utilityAreaHeight, value: currentHeight)
         workspace.addToWorkspaceState(key: .utilityAreaMaximized, value: isMaximized)
+
+        let state = TerminalRestorationState(
+            terminals: terminals.map(TerminalRestorationItem.init),
+            selectedTerminalIDs: Array(selectedTerminals)
+        )
+
+        if let data = try? JSONEncoder().encode(state) {
+            workspace.addToWorkspaceState(key: .openTerminals, value: data)
+        }
     }
 
     func togglePanel(animation: Bool = true) {
@@ -92,6 +151,15 @@ class UtilityAreaViewModel: ObservableObject {
         } else {
             terminal.customTitle = false
         }
+    }
+
+    /// Update a terminal's current directory.
+    /// - Parameters:
+    ///   - id: The id of the terminal to update.
+    ///   - url: The current directory URL reported by the shell.
+    func updateTerminal(_ id: UUID, url: URL) {
+        guard let terminal = terminals.first(where: { $0.id == id }) else { return }
+        terminal.url = url
     }
 
     /// Create a new terminal if there are no existing terminals.
