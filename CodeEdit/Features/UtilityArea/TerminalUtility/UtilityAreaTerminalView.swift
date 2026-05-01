@@ -112,6 +112,7 @@ struct UtilityAreaTerminalView: View {
                                     // This can be called whenever, even in a view update so it needs to be dispatched.
                                     DispatchQueue.main.async { [weak utilityAreaViewModel] in
                                         utilityAreaViewModel?.updateTerminal(id, title: newTitle)
+                                        persistTerminals()
                                     }
                                 },
                                 onCurrentDirectoryChange: { [weak selectedTerminal] directory in
@@ -124,6 +125,7 @@ struct UtilityAreaTerminalView: View {
 
                                     DispatchQueue.main.async { [weak utilityAreaViewModel] in
                                         utilityAreaViewModel?.updateTerminal(id, url: url)
+                                        persistTerminals()
                                     }
                                 }
                             )
@@ -179,6 +181,13 @@ struct UtilityAreaTerminalView: View {
                 return
             }
             utilityAreaViewModel.initializeTerminals(workspaceURL: workspaceURL)
+            persistTerminals()
+        }
+        .onChange(of: utilityAreaViewModel.terminals.map(\.id)) { _, _ in
+            persistTerminals()
+        }
+        .onChange(of: utilityAreaViewModel.selectedTerminals) { _, _ in
+            persistTerminals()
         }
         .accessibilityIdentifier("terminal-area")
     }
@@ -207,5 +216,9 @@ struct UtilityAreaTerminalView: View {
         }
 
         return URL(filePath: directory, directoryHint: .isDirectory)
+    }
+
+    private func persistTerminals() {
+        utilityAreaViewModel.saveRestorationState(workspace)
     }
 }

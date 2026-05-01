@@ -180,9 +180,9 @@ final class WorkspaceDocument: NSDocument, ObservableObject, NSToolbarDelegate {
     // MARK: Close Workspace
 
     override func close() {
-        super.close()
         editorManager?.saveRestorationState(self)
         utilityAreaModel?.saveRestorationState(self)
+        super.close()
 
         cancellables.forEach({ $0.cancel() })
         statusBarViewModel = nil

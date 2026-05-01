@@ -9,7 +9,7 @@ import Foundation
 
 final class UtilityAreaTerminal: ObservableObject, Identifiable, Equatable {
     let id: UUID
-    @Published var url: URL
+    var url: URL
     @Published var title: String
     @Published var terminalTitle: String
     @Published var shell: Shell?
