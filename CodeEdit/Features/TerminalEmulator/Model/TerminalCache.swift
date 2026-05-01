@@ -16,8 +16,12 @@ final class TerminalCache {
     /// The cache of terminal views.
     private var terminals: [UUID: CELocalShellTerminalView]
 
+    /// The terminal style signature applied to each cached view.
+    private var configurationSignatures: [UUID: String]
+
     private init() {
         terminals = [:]
+        configurationSignatures = [:]
     }
 
     /// Get a cached terminal view.
@@ -35,9 +39,25 @@ final class TerminalCache {
         terminals[id] = view
     }
 
+    /// Get the last terminal style signature applied to a cached view.
+    /// - Parameter id: The ID of the terminal.
+    /// - Returns: The style signature, if one was cached.
+    func getConfigurationSignature(_ id: UUID) -> String? {
+        configurationSignatures[id]
+    }
+
+    /// Store the terminal style signature applied to a cached view.
+    /// - Parameters:
+    ///   - signature: The applied style signature.
+    ///   - id: The ID of the terminal.
+    func cacheConfigurationSignature(_ signature: String, for id: UUID) {
+        configurationSignatures[id] = signature
+    }
+
     /// Remove any view associated with the terminal id.
     /// - Parameter id: The ID of the terminal.
     func removeCachedView(_ id: UUID) {
         terminals[id] = nil
+        configurationSignatures[id] = nil
     }
 }

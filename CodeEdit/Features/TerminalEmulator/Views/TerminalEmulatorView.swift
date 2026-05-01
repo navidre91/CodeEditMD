@@ -143,6 +143,21 @@ struct TerminalEmulatorView: NSViewRepresentable {
         return .clear
     }
 
+    /// A compact fingerprint of the settings that affect terminal rendering.
+    private var configurationSignature: String {
+        [
+            String(terminalSettings.hashValue),
+            font.fontName,
+            String(format: "%.2f", font.pointSize),
+            colors.map { String(describing: $0) }.joined(separator: ","),
+            colorSignature(cursorColor),
+            colorSignature(selectionColor),
+            colorSignature(textColor),
+            colorSignature(terminalSettings.useThemeBackground ? backgroundColor : .clear),
+            String(describing: colorAppearance?.name)
+        ].joined(separator: "|")
+    }
+
     /// returns a `NSAppearance` based on the user setting of the terminal appearance,
     /// `nil` if app default is not overridden
     private var colorAppearance: NSAppearance? {
@@ -164,7 +179,9 @@ struct TerminalEmulatorView: NSViewRepresentable {
             view = TerminalCache.shared.getTerminalView(terminalID) ?? CELocalShellTerminalView(frame: .zero)
             if !isCached {
                 view.startProcess(workspaceURL: url, shell: shellType)
-                configureView(view)
+                configureView(view, forceRedraw: false)
+            } else if TerminalCache.shared.getConfigurationSignature(terminalID) != configurationSignature {
+                configureView(view, forceRedraw: true)
             }
         case .task(let activeTask):
             if let output = activeTask.output {
@@ -175,8 +192,10 @@ struct TerminalEmulatorView: NSViewRepresentable {
                 view = newView
             }
             if !activeTask.hasOutputBeenConfigured {
-                configureView(view)
+                configureView(view, forceRedraw: false)
                 activeTask.hasOutputBeenConfigured = true
+            } else if TerminalCache.shared.getConfigurationSignature(terminalID) != configurationSignature {
+                configureView(view, forceRedraw: true)
             }
         }
 
@@ -186,7 +205,7 @@ struct TerminalEmulatorView: NSViewRepresentable {
         return view
     }
 
-    func configureView(_ terminal: CELocalShellTerminalView) {
+    func configureView(_ terminal: CELocalShellTerminalView, forceRedraw: Bool) {
         terminal.getTerminal().silentLog = true
         terminal.appearance = colorAppearance
         scroller(terminal)?.isHidden = true
@@ -200,6 +219,12 @@ struct TerminalEmulatorView: NSViewRepresentable {
         terminal.cursorStyleChanged(source: terminal.getTerminal(), newStyle: getTerminalCursor())
         terminal.layer?.backgroundColor = CGColor.clear
         terminal.optionAsMetaKey = optionAsMeta
+        TerminalCache.shared.cacheConfigurationSignature(configurationSignature, for: terminalID)
+
+        if forceRedraw {
+            terminal.getTerminal().softReset()
+            terminal.feed(text: "") // send empty character to force colors to be redrawn
+        }
     }
 
     private func scroller(_ terminal: CELocalShellTerminalView) -> NSScroller? {
@@ -212,18 +237,24 @@ struct TerminalEmulatorView: NSViewRepresentable {
     }
 
     func updateNSView(_ view: CELocalShellTerminalView, context: Context) {
-        view.installColors(self.colors)
-        view.caretColor = cursorColor.withAlphaComponent(0.5)
-        view.caretTextColor = cursorColor.withAlphaComponent(0.5)
-        view.selectedTextBackgroundColor = selectionColor
-        view.nativeForegroundColor = textColor
-        view.nativeBackgroundColor = terminalSettings.useThemeBackground ? backgroundColor : .clear
-        view.layer?.backgroundColor = .clear
-        view.optionAsMetaKey = optionAsMeta
-        view.cursorStyleChanged(source: view.getTerminal(), newStyle: getTerminalCursor())
-        view.appearance = colorAppearance
-        view.getTerminal().softReset()
-        view.feed(text: "") // send empty character to force colors to be redrawn
+        guard TerminalCache.shared.getConfigurationSignature(terminalID) != configurationSignature else {
+            return
+        }
+
+        configureView(view, forceRedraw: true)
+    }
+
+    private func colorSignature(_ color: NSColor) -> String {
+        guard let color = color.usingColorSpace(.deviceRGB) else {
+            return color.description
+        }
+
+        return [
+            color.redComponent,
+            color.greenComponent,
+            color.blueComponent,
+            color.alphaComponent
+        ].map { String(format: "%.4f", $0) }.joined(separator: ",")
     }
 
     func makeCoordinator() -> Coordinator {
