@@ -17,8 +17,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "2BE487EB28245162003F3F64"
-               BuildableName = "OpenWithCodeEdit.appex"
-               BlueprintName = "OpenWithCodeEdit"
+               BuildableName = "OpenWithCodeEditMD.appex"
+               BlueprintName = "OpenWithCodeEditMD"
                ReferencedContainer = "container:CodeEdit.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -31,7 +31,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "B658FB2B27DA9E0F00EA4DBD"
-               BuildableName = "CodeEdit.app"
+               BuildableName = "CodeEditMD.app"
                BlueprintName = "CodeEdit"
                ReferencedContainer = "container:CodeEdit.xcodeproj">
             </BuildableReference>
@@ -62,7 +62,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "B658FB2B27DA9E0F00EA4DBD"
-            BuildableName = "CodeEdit.app"
+            BuildableName = "CodeEditMD.app"
             BlueprintName = "CodeEdit"
             ReferencedContainer = "container:CodeEdit.xcodeproj">
          </BuildableReference>
@@ -81,7 +81,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "B658FB2B27DA9E0F00EA4DBD"
-            BuildableName = "CodeEdit.app"
+            BuildableName = "CodeEditMD.app"
             BlueprintName = "CodeEdit"
             ReferencedContainer = "container:CodeEdit.xcodeproj">
          </BuildableReference>

@@ -1251,6 +1251,8 @@
 			<string>WorkspaceDocument</string>
 		</dict>
 	</array>
+	<key>CFBundleDisplayName</key>
+	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -1270,7 +1272,7 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>codeedit</string>
+				<string>codeeditmd</string>
 			</array>
 		</dict>
 	</array>

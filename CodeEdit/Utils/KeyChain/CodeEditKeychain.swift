@@ -16,7 +16,7 @@ class CodeEditKeychain {
     /// Contains result code from the last operation. Value is noErr (0) for a successful result.
     var lastResultCode: OSStatus = noErr
 
-    var keyPrefix = "" // Can be useful in test.
+    var keyPrefix = AppRuntime.keychainPrefix // Can be useful in test.
 
     /**
      Specify an access group that will be used to access keychain items.

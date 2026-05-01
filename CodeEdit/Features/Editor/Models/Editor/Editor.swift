@@ -5,12 +5,15 @@
 //  Created by Wouter Hennen on 16/02/2023.
 //
 
+// swiftlint:disable file_length
+
 import Foundation
 import OrderedCollections
 import DequeModule
 import AppKit
 import OSLog
 
+// swiftlint:disable:next type_body_length
 final class Editor: ObservableObject, Identifiable {
     enum EditorError: Error {
         case noWorkspaceAttached
@@ -25,14 +28,14 @@ final class Editor: ObservableObject, Identifiable {
 
             if tabs.count > oldValue.count {
                 // Amount of tabs grew, so set the first new as selected.
-                setSelectedTab(change.first?.file)
+                setSelectedTab(change.first)
             } else {
                 // Selected file was removed
                 if let selectedTab, change.contains(selectedTab) {
                     if let oldIndex = oldValue.firstIndex(of: selectedTab), oldIndex - 1 < tabs.count, !tabs.isEmpty {
-                        setSelectedTab(tabs[max(0, oldIndex-1)].file)
+                        setSelectedTab(tabs[max(0, oldIndex-1)])
                     } else {
-                        setSelectedTab(nil)
+                        setSelectedTab(nil as Tab?)
                     }
                 }
             }
@@ -100,7 +103,7 @@ final class Editor: ObservableObject, Identifiable {
         self.tabs = []
         self.parent = parent
         self.workspace = workspace
-        files.forEach { openTab(file: $0.file) }
+        files.forEach { openTab(tab: $0) }
         self.selectedTab = selectedTab ?? tabs.first
         self.temporaryTab = temporaryTab
     }
@@ -125,6 +128,28 @@ final class Editor: ObservableObject, Identifiable {
         guard let tab = self.tabs.first(where: { $0.file == file }) else {
             return
         }
+        self.selectedTab = tab
+        if tab.file.fileDocument == nil {
+            do { // Ignore this error for simpler API usage.
+                try openFile(item: tab)
+            } catch {
+                print(error)
+            }
+        }
+    }
+
+    /// Set the selected tab. Loads the file's contents if it hasn't already been opened.
+    /// - Parameter tab: The tab to select.
+    func setSelectedTab(_ tab: Tab?) {
+        guard let tab else {
+            selectedTab = nil
+            return
+        }
+
+        guard tabs.contains(tab) else {
+            return
+        }
+
         self.selectedTab = tab
         if tab.file.fileDocument == nil {
             do { // Ignore this error for simpler API usage.
@@ -167,13 +192,86 @@ final class Editor: ObservableObject, Identifiable {
         file.fileDocument = nil
     }
 
+    /// Closes a single tab in the editor.
+    /// If this is the last tab presenting its file, the file document is closed and released.
+    /// - Parameters:
+    ///   - tab: The tab to close.
+    ///   - fromHistory: If `true`, does not clear tabs ahead of the ``historyOffset``.
+    func closeTab(tab: Tab, fromHistory: Bool = false) {
+        guard canCloseTab(file: tab.file) else { return }
+
+        if temporaryTab == tab {
+            temporaryTab = nil
+        }
+        if !fromHistory {
+            clearFuture()
+        }
+        if tab != selectedTab {
+            addToHistory(tab)
+        }
+        removeTab(tab)
+        if let selectedTab {
+            addToHistory(selectedTab)
+        }
+
+        guard !tabs.contains(where: { $0.file == tab.file }) else {
+            return
+        }
+
+        tab.file.fileDocument?.updateChangeCount(.changeCleared)
+        if let codeFile = tab.file.fileDocument {
+            codeFile.close()
+        }
+        tab.file.fileDocument = nil
+    }
+
     /// Closes the currently opened tab in the tab group.
     func closeSelectedTab() {
-        guard let file = selectedTab?.file else {
+        guard let selectedTab else {
+            return
+        }
+
+        closeTab(tab: selectedTab)
+    }
+
+    func openMarkdownPairForSelectedFile() {
+        guard let file = selectedTab?.file, file.url.isMarkdownDocument else {
+            return
+        }
+
+        openMarkdownPair(for: file)
+    }
+
+    func closeMarkdownPairForSelectedFile() {
+        guard let file = selectedTab?.file, file.url.isMarkdownDocument else {
             return
         }
 
         closeTab(file: file)
+    }
+
+    func selectMarkdownPresentation(_ presentation: Tab.Presentation) {
+        guard let file = selectedTab?.file, file.url.isMarkdownDocument else {
+            return
+        }
+
+        openTab(tab: Tab(workspace: workspace, file: file, presentation: presentation))
+    }
+
+    func openMarkdownPair(for file: CEWorkspaceFile) {
+        guard file.url.isMarkdownDocument else {
+            openTab(file: file)
+            return
+        }
+
+        let source = Tab(workspace: workspace, file: file, presentation: .source)
+        let preview = Tab(workspace: workspace, file: file, presentation: .markdownPreview)
+
+        if !tabs.contains(source) {
+            openTab(tab: source)
+        }
+
+        openTab(tab: preview)
     }
 
     /// Opens a tab in the editor.
@@ -182,11 +280,33 @@ final class Editor: ObservableObject, Identifiable {
     ///   - file: the file to open.
     ///   - asTemporary: indicates whether the tab should be opened as a temporary tab or a permanent tab.
     func openTab(file: CEWorkspaceFile, asTemporary: Bool) {
+        if file.url.isMarkdownDocument {
+            let source = EditorInstance(workspace: workspace, file: file, presentation: .source)
+            let preview = EditorInstance(workspace: workspace, file: file, presentation: .markdownPreview)
+
+            if !tabs.contains(source) {
+                openTab(tab: source)
+            }
+
+            openTab(tab: preview)
+            return
+        }
+
         let item = EditorInstance(workspace: workspace, file: file)
+        openTab(tab: item, asTemporary: asTemporary)
+    }
+
+    /// Opens a tab in the editor.
+    /// If a tab for the item already exists, it is used instead.
+    /// - Parameters:
+    ///   - item: the tab to open.
+    ///   - asTemporary: indicates whether the tab should be opened as a temporary tab or a permanent tab.
+    func openTab(tab item: Tab, asTemporary: Bool) {
         // Item is already opened in a tab.
         guard !tabs.contains(item) || !asTemporary else {
-            selectedTab = item
-            addToHistory(item)
+            let existingItem = tabs.first(where: { $0 == item }) ?? item
+            selectedTab = existingItem
+            addToHistory(existingItem)
             return
         }
 
@@ -196,16 +316,16 @@ final class Editor: ObservableObject, Identifiable {
         case (.some(let tab), false) where tab == item:
             temporaryTab = nil
         case (.some(let tab), false) where tab != item:
-            openTab(file: item.file)
+            openTab(tab: item)
         case (.some, false):
             // A temporary tab exists, but we don't want to open this one as temporary.
             // Clear the temp tab and open the new one.
-            openTab(file: item.file)
+            openTab(tab: item)
         case (.none, true):
-            openTab(file: item.file)
+            openTab(tab: item)
             temporaryTab = item
         case (.none, false):
-            openTab(file: item.file)
+            openTab(tab: item)
         }
     }
 
@@ -229,7 +349,7 @@ final class Editor: ObservableObject, Identifiable {
             temporaryTab = newItem
         } else {
             // If we couldn't find the current temporary tab (invalid state) we should still do *something*
-            openTab(file: newItem.file)
+            openTab(tab: newItem)
             temporaryTab = newItem
         }
     }
@@ -240,7 +360,47 @@ final class Editor: ObservableObject, Identifiable {
     ///   - index: Index where the tab needs to be added. If nil, it is added to the back.
     ///   - fromHistory: Indicates whether the tab has been opened from going back in history.
     func openTab(file: CEWorkspaceFile, at index: Int? = nil, fromHistory: Bool = false) {
+        if file.url.isMarkdownDocument {
+            let source = Tab(workspace: workspace, file: file, presentation: .source)
+            let preview = Tab(workspace: workspace, file: file, presentation: .markdownPreview)
+            let sourceExists = tabs.contains(source)
+
+            if !sourceExists {
+                openTab(tab: source, at: index, fromHistory: fromHistory)
+            }
+
+            openTab(
+                tab: preview,
+                at: index.map { $0 + (sourceExists ? 0 : 1) },
+                fromHistory: fromHistory
+            )
+            return
+        }
+
         let item = Tab(workspace: workspace, file: file)
+        openTab(tab: item, at: index, fromHistory: fromHistory)
+    }
+
+    /// Opens a tab in the editor.
+    /// - Parameters:
+    ///   - item: The tab to open.
+    ///   - index: Index where the tab needs to be added. If nil, it is added to the back.
+    ///   - fromHistory: Indicates whether the tab has been opened from going back in history.
+    func openTab(tab item: Tab, at index: Int? = nil, fromHistory: Bool = false) {
+        if let existingItem = tabs.first(where: { $0 == item }) {
+            selectedTab = existingItem
+            if !fromHistory {
+                clearFuture()
+                addToHistory(existingItem)
+            }
+            do {
+                try openFile(item: existingItem)
+            } catch {
+                logger.error("Error opening file: \(error)")
+            }
+            return
+        }
+
         if let index {
             tabs.insert(item, at: index)
         } else {
@@ -325,6 +485,15 @@ final class Editor: ObservableObject, Identifiable {
     func removeTab(_ file: CEWorkspaceFile) {
         tabs.removeAll(where: { tab in tab.file == file })
         if temporaryTab?.file == file {
+            temporaryTab = nil
+        }
+    }
+
+    /// Remove the given tab.
+    /// - Parameter tab: The tab to remove.
+    func removeTab(_ tab: Tab) {
+        tabs.remove(tab)
+        if temporaryTab == tab {
             temporaryTab = nil
         }
     }

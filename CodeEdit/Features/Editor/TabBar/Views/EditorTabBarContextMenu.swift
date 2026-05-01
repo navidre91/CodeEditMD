@@ -9,14 +9,14 @@ import SwiftUI
 import Foundation
 
 extension View {
-    func tabBarContextMenu(item: CEWorkspaceFile, isTemporary: Bool) -> some View {
+    func tabBarContextMenu(item: Editor.Tab, isTemporary: Bool) -> some View {
         modifier(EditorTabBarContextMenu(item: item, isTemporary: isTemporary))
     }
 }
 
 struct EditorTabBarContextMenu: ViewModifier {
     init(
-        item: CEWorkspaceFile,
+        item: Editor.Tab,
         isTemporary: Bool
     ) {
         self.item = item
@@ -30,7 +30,7 @@ struct EditorTabBarContextMenu: ViewModifier {
     @Environment(\.splitEditor)
     var splitEditor
 
-    private var item: CEWorkspaceFile
+    private var item: Editor.Tab
     private var isTemporary: Bool
 
     // swiftlint:disable:next function_body_length
@@ -39,16 +39,24 @@ struct EditorTabBarContextMenu: ViewModifier {
             Group {
                 Button("Close Tab") {
                     withAnimation {
-                        tabs.closeTab(file: item)
+                        tabs.closeTab(tab: item)
                     }
                 }
                 .keyboardShortcut("w", modifiers: [.command])
 
+                if item.file.url.isMarkdownDocument {
+                    Button("Close Source and Preview Tabs") {
+                        withAnimation {
+                            tabs.closeTab(file: item.file)
+                        }
+                    }
+                }
+
                 Button("Close Other Tabs") {
                     withAnimation {
-                        tabs.tabs.map({ $0.file }).forEach { file in
-                            if file != item {
-                                tabs.closeTab(file: file)
+                        Array(tabs.tabs).forEach { tab in
+                            if tab != item {
+                                tabs.closeTab(tab: tab)
                             }
                         }
                     }
@@ -56,20 +64,20 @@ struct EditorTabBarContextMenu: ViewModifier {
 
                 Button("Close Tabs to the Right") {
                     withAnimation {
-                        if let index = tabs.tabs.firstIndex(where: { $0.file == item }), index + 1 < tabs.tabs.count {
-                            tabs.tabs[(index + 1)...].forEach {
-                                tabs.closeTab(file: $0.file)
+                        if let index = tabs.tabs.firstIndex(of: item), index + 1 < tabs.tabs.count {
+                            Array(tabs.tabs[(index + 1)...]).forEach { tab in
+                                tabs.closeTab(tab: tab)
                             }
                         }
                     }
                 }
                 // Disable this option when current tab is the last one.
-                .disabled(tabs.tabs.last?.file == item)
+                .disabled(tabs.tabs.last == item)
 
                 Button("Close All") {
                     withAnimation {
-                        tabs.tabs.forEach {
-                            tabs.closeTab(file: $0.file)
+                        Array(tabs.tabs).forEach { tab in
+                            tabs.closeTab(tab: tab)
                         }
                     }
                 }
@@ -85,11 +93,17 @@ struct EditorTabBarContextMenu: ViewModifier {
 
             Group {
                 Button("Copy Path") {
-                    copyPath(item: item)
+                    copyPath(item: item.file)
                 }
 
                 Button("Copy Relative Path") {
-                    copyRelativePath(item: item)
+                    copyRelativePath(item: item.file)
+                }
+
+                if item.file.url.isMarkdownDocument {
+                    Button("Export Preview as HTML...") {
+                        exportMarkdownPreview()
+                    }
                 }
             }
 
@@ -97,11 +111,11 @@ struct EditorTabBarContextMenu: ViewModifier {
 
             Group {
                 Button("Show in Finder") {
-                    item.showInFinder()
+                    item.file.showInFinder()
                 }
 
                 Button("Reveal in Project Navigator") {
-                    workspace.listenerModel.highlightedFileItem = item
+                    workspace.listenerModel.highlightedFileItem = item.file
                 }
 
                 Button("Open in New Window") {
@@ -139,7 +153,7 @@ struct EditorTabBarContextMenu: ViewModifier {
     func moveToNewSplit(_ edge: Edge) {
         let newEditor = Editor(files: [item], workspace: workspace)
         splitEditor(edge, newEditor)
-        tabs.closeTab(file: item)
+        tabs.closeTab(tab: item)
         workspace.editorManager?.activeEditor = newEditor
     }
 
@@ -165,5 +179,13 @@ struct EditorTabBarContextMenu: ViewModifier {
         // Copy it to the clipboard
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(upPath + downPath, forType: .string)
+    }
+
+    private func exportMarkdownPreview() {
+        let markdown = item.file.fileDocument?.content?.string
+            ?? (try? String(contentsOf: item.file.url, encoding: .utf8))
+            ?? ""
+
+        MarkdownPreviewExporter.exportHTML(markdown: markdown, sourceURL: item.file.url)
     }
 }

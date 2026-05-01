@@ -21,6 +21,7 @@ struct MainCommands: Commands {
             Button("Check for updates...") {
                 NSApp.sendAction(#selector(SPUStandardUpdaterController.checkForUpdates(_:)), to: nil, from: nil)
             }
+            .disabled(AppRuntime.isCodeEditMDFork)
         }
 
         CommandGroup(replacing: .appSettings) {

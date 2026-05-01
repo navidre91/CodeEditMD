@@ -51,9 +51,9 @@ struct EditorTabView: View {
     /// The id associating with the tab that is currently being dragged.
     ///
     /// When `nil`, then there is no tab being dragged.
-    private var draggingTabId: CEWorkspaceFile.ID?
+    private var draggingTabId: EditorInstance.ID?
 
-    private var onDragTabId: CEWorkspaceFile.ID?
+    private var onDragTabId: EditorInstance.ID?
 
     @Binding private var closeButtonGestureActive: Bool
 
@@ -62,22 +62,26 @@ struct EditorTabView: View {
     /// The file item associated with the current tab.
     ///
     /// You can get tab-related information from here, like `label`, `icon`, etc.
-    private let tabFile: CEWorkspaceFile
+    private let tab: EditorInstance
+
+    private var tabFile: CEWorkspaceFile {
+        tab.file
+    }
 
     var index: Int
 
     private var isTemporary: Bool {
-        editor.temporaryTab?.file == tabFile
+        editor.temporaryTab == tab
     }
 
     /// Is the current tab the active tab.
     private var isActive: Bool {
-        tabFile == editor.selectedTab?.file
+        tab == editor.selectedTab
     }
 
     /// Is the current tab being dragged.
     private var isDragging: Bool {
-        draggingTabId == tabFile.id
+        draggingTabId == tab.id
     }
 
     /// Is the current tab being held (by click and hold, not drag).
@@ -91,33 +95,32 @@ struct EditorTabView: View {
     private func switchAction() {
         // Only set the `selectedId` when they are not equal to avoid performance issue for now.
         editorManager.activeEditor = editor
-        if editor.selectedTab?.file != tabFile {
-            let tabItem = EditorInstance(workspace: workspace, file: tabFile)
-            editor.setSelectedTab(tabFile)
+        if editor.selectedTab != tab {
+            editor.setSelectedTab(tab)
             editor.clearFuture()
-            editor.addToHistory(tabItem)
+            editor.addToHistory(tab)
         }
     }
 
     /// Close the current tab.
     func closeAction() {
         isAppeared = false
-        editor.closeTab(file: tabFile)
+        editor.closeTab(tab: tab)
     }
 
     init(
-        file: CEWorkspaceFile,
+        tab: EditorInstance,
         index: Int,
-        draggingTabId: CEWorkspaceFile.ID?,
-        onDragTabId: CEWorkspaceFile.ID?,
+        draggingTabId: EditorInstance.ID?,
+        onDragTabId: EditorInstance.ID?,
         closeButtonGestureActive: Binding<Bool>
     ) {
-        self.tabFile = file
+        self.tab = tab
         self.index = index
         self.draggingTabId = draggingTabId
         self.onDragTabId = onDragTabId
         self._closeButtonGestureActive = closeButtonGestureActive
-        self._fileObserver = StateObject(wrappedValue: EditorTabFileObserver(file: file))
+        self._fileObserver = StateObject(wrappedValue: EditorTabFileObserver(file: tab.file))
     }
 
     @ViewBuilder var content: some View {
@@ -137,7 +140,7 @@ struct EditorTabView: View {
                         ? tabFile.iconColor
                         : .secondary
                     )
-                Text(tabFile.name)
+                Text(tab.title)
                     .font(
                         isTemporary
                         ? .system(size: 11.0).italic()
@@ -149,7 +152,7 @@ struct EditorTabView: View {
             .frame(maxHeight: .infinity) // To max-out the parent (tab bar) area.
             .accessibilityElement(children: .ignore)
             .accessibilityAddTraits(.isStaticText)
-            .accessibilityLabel(tabFile.name)
+            .accessibilityLabel(tab.title)
             .padding(.horizontal, 20)
             .overlay {
                 ZStack {
@@ -205,7 +208,7 @@ struct EditorTabView: View {
             keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .otherMouseDown) { event in
                 if self.isHovering && event.type == .otherMouseDown && event.buttonNumber == 2 {
                     DispatchQueue.main.async {
-                        editor.closeTab(file: tabFile)
+                        editor.closeTab(tab: tab)
                     }
                 }
                 return event
@@ -261,8 +264,8 @@ struct EditorTabView: View {
                     }
             )
             .zIndex(isActive ? 2 : (isDragging ? 3 : (isPressing ? 1 : 0)))
-            .id(tabFile.id)
-            .tabBarContextMenu(item: tabFile, isTemporary: isTemporary)
+            .id(tab.id)
+            .tabBarContextMenu(item: tab, isTemporary: isTemporary)
             .accessibilityElement(children: .contain)
             .onAppear {
                 workspace.workspaceFileManager?.addObserver(fileObserver)

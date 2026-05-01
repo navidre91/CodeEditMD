@@ -115,7 +115,7 @@ extension EditorManager {
             ) {
                 editor.setSelectedTab(resolvedFile)
             } else {
-                editor.setSelectedTab(nil)
+                editor.setSelectedTab(nil as Editor.Tab?)
             }
         }
     }

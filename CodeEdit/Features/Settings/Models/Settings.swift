@@ -47,7 +47,7 @@ final class Settings: ObservableObject {
     @Published var preferences: SettingsData
 
     /// Load and construct ``Settings`` model from
-    /// `~/Library/Application Support/CodeEdit/settings.json`
+    /// `~/Library/Application Support/<app name>/settings.json`
     private func loadSettings() -> SettingsData {
         if !filemanager.fileExists(atPath: settingsURL.path) {
             try? filemanager.createDirectory(at: baseURL, withIntermediateDirectories: false)
@@ -63,7 +63,7 @@ final class Settings: ObservableObject {
     }
 
     /// Save``Settings`` model to
-    /// `~/Library/Application Support/CodeEdit/settings.json`
+    /// `~/Library/Application Support/<app name>/settings.json`
     private func savePreferences(_ data: SettingsData) throws {
         let data = try JSONEncoder().encode(data)
         let json = try JSONSerialization.jsonObject(with: data)
@@ -76,16 +76,14 @@ final class Settings: ObservableObject {
 
     /// The base URL of settings.
     ///
-    /// Points to `~/Library/Application Support/CodeEdit/`
+    /// Points to `~/Library/Application Support/<app name>/`
     internal var baseURL: URL {
-        filemanager
-            .homeDirectoryForCurrentUser
-            .appending(path: "Library/Application Support/CodeEdit", directoryHint: .isDirectory)
+        AppRuntime.applicationSupportURL
     }
 
     /// The URL of the `settings.json` settings file.
     ///
-    /// Points to `~/Library/Application Support/CodeEdit/settings.json`
+    /// Points to `~/Library/Application Support/<app name>/settings.json`
     private var settingsURL: URL {
         baseURL
             .appending(path: "settings")

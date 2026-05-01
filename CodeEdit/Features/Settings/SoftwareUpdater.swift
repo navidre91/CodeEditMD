@@ -33,6 +33,13 @@ class SoftwareUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
     private var feedURLTask: Task<(), Never>?
 
     private func setFeedURL() async {
+        guard !AppRuntime.isCodeEditMDFork else {
+            await MainActor.run {
+                self.updater?.setFeedURL(nil)
+            }
+            return
+        }
+
         let url = URL(string: "https://api.github.com/repos/CodeEditApp/CodeEdit/releases/latest")!
         let request = URLRequest(url: url)
         guard let data = try? await URLSession.shared.data(for: request),
@@ -52,6 +59,12 @@ class SoftwareUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
 
     override init() {
         super.init()
+
+        guard !AppRuntime.isCodeEditMDFork else {
+            includePrereleaseVersions = UserDefaults.standard.bool(forKey: "includePrereleaseVersions")
+            return
+        }
+
         updater = SPUStandardUpdaterController(
             startingUpdater: true,
             updaterDelegate: self,
@@ -95,6 +108,10 @@ class SoftwareUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
     }
 
     func checkForUpdates() {
+        guard !AppRuntime.isCodeEditMDFork else {
+            return
+        }
+
         updater?.checkForUpdates()
     }
 

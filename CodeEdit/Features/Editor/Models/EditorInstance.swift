@@ -13,9 +13,30 @@ import CodeEditSourceEditor
 
 /// A single instance of an editor in a group with a published ``EditorInstance/cursorPositions`` variable to publish
 /// the user's current location in a file.
-class EditorInstance: ObservableObject, Hashable {
+class EditorInstance: ObservableObject, Hashable, Identifiable {
+    enum Presentation: String, Codable {
+        case source
+        case markdownPreview
+    }
+
     /// The file presented in this editor instance.
     let file: CEWorkspaceFile
+
+    /// How the file is presented in this editor instance.
+    let presentation: Presentation
+
+    var id: String {
+        "\(file.id)::\(presentation.rawValue)"
+    }
+
+    var title: String {
+        switch presentation {
+        case .source:
+            file.name
+        case .markdownPreview:
+            "\(file.name) Preview"
+        }
+    }
 
     /// A publisher for the user's current location in a file.
     @Published var cursorPositions: [CursorPosition]
@@ -33,8 +54,14 @@ class EditorInstance: ObservableObject, Hashable {
 
     // MARK: - Init
 
-    init(workspace: WorkspaceDocument?, file: CEWorkspaceFile, cursorPositions: [CursorPosition]? = nil) {
+    init(
+        workspace: WorkspaceDocument?,
+        file: CEWorkspaceFile,
+        presentation: Presentation = .source,
+        cursorPositions: [CursorPosition]? = nil
+    ) {
         self.file = file
+        self.presentation = presentation
         let url = file.url
         let editorState = EditorStateRestoration.shared?.restorationState(for: url)
 
@@ -114,10 +141,11 @@ class EditorInstance: ObservableObject, Hashable {
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(file)
+        hasher.combine(presentation)
     }
 
     static func == (lhs: EditorInstance, rhs: EditorInstance) -> Bool {
-        lhs.file == rhs.file
+        lhs.file == rhs.file && lhs.presentation == rhs.presentation
     }
 
     // MARK: - RangeTranslator

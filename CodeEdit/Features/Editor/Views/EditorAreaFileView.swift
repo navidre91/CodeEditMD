@@ -24,10 +24,14 @@ struct EditorAreaFileView: View {
 
     @ViewBuilder var editorAreaFileView: some View {
         if let utType = codeFile.utType, utType.conforms(to: .text) {
-            CodeFileView(
-                editorInstance: editorInstance,
-                codeFile: codeFile
-            )
+            if editorInstance.presentation == .markdownPreview {
+                MarkdownPreviewView(codeFile: codeFile)
+            } else {
+                CodeFileView(
+                    editorInstance: editorInstance,
+                    codeFile: codeFile
+                )
+            }
         } else {
             NonTextFileView(fileDocument: codeFile)
                 .padding(.top, edgeInsets.top - 1.74)

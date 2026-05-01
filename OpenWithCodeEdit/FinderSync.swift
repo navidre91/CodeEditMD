@@ -46,7 +46,7 @@ class CEOpenWith: FIFinderSync {
     @objc
     func openInCodeEditAction(_ sender: AnyObject?) {
         guard let items = FIFinderSyncController.default().selectedItemURLs(),
-              let defaults = UserDefaults.init(suiteName: "app.codeedit.CodeEdit.shared") else {
+              let defaults = UserDefaults.init(suiteName: "app.codeedit.CodeEditMD.shared") else {
             return
         }
 
@@ -58,7 +58,7 @@ class CEOpenWith: FIFinderSync {
         }
 
         guard let codeEdit = NSWorkspace.shared.urlForApplication(
-            withBundleIdentifier: "app.codeedit.CodeEdit"
+            withBundleIdentifier: "app.codeedit.CodeEditMD"
         ) else { return }
 
         // Add files to open to openInCEFiles.
@@ -73,7 +73,7 @@ class CEOpenWith: FIFinderSync {
 
     // MARK: - Menu and toolbar item support
     override func menu(for menuKind: FIMenuKind) -> NSMenu {
-        guard let defaults = UserDefaults.init(suiteName: "app.codeedit.CodeEdit.shared") else {
+        guard let defaults = UserDefaults.init(suiteName: "app.codeedit.CodeEditMD.shared") else {
             logger.error("Unable to load defaults")
             return NSMenu(title: "")
         }
@@ -83,7 +83,7 @@ class CEOpenWith: FIFinderSync {
 
         let menu = NSMenu(title: "")
         let menuItem = NSMenuItem(
-            title: "Open in CodeEdit",
+            title: "Open in CodeEditMD",
             action: #selector(openInCodeEditAction(_:)),
             keyEquivalent: ""
         )

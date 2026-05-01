@@ -10,7 +10,7 @@
 		2816F594280CF50500DD548B /* CodeEditSymbols in Frameworks */ = {isa = PBXBuildFile; productRef = 2816F593280CF50500DD548B /* CodeEditSymbols */; };
 		283BDCBD2972EEBD002AFF81 /* Package.resolved in Resources */ = {isa = PBXBuildFile; fileRef = 283BDCBC2972EEBD002AFF81 /* Package.resolved */; };
 		284DC8512978BA2600BF2770 /* .all-contributorsrc in Resources */ = {isa = PBXBuildFile; fileRef = 284DC8502978BA2600BF2770 /* .all-contributorsrc */; };
-		2BE487F428245162003F3F64 /* OpenWithCodeEdit.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2BE487EC28245162003F3F64 /* OpenWithCodeEdit.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		2BE487F428245162003F3F64 /* OpenWithCodeEditMD.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2BE487EC28245162003F3F64 /* OpenWithCodeEditMD.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		302AD7FF2D8054D500231E16 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 30818CB42D4E563900967860 /* ZIPFoundation */; };
 		30CB64912C16CA8100CC8A9E /* LanguageServerProtocol in Frameworks */ = {isa = PBXBuildFile; productRef = 30CB64902C16CA8100CC8A9E /* LanguageServerProtocol */; };
 		30CB64942C16CA9100CC8A9E /* LanguageClient in Frameworks */ = {isa = PBXBuildFile; productRef = 30CB64932C16CA9100CC8A9E /* LanguageClient */; };
@@ -54,7 +54,7 @@
 			containerPortal = B658FB2427DA9E0F00EA4DBD /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 2BE487EB28245162003F3F64;
-			remoteInfo = OpenWithCodeEdit;
+			remoteInfo = OpenWithCodeEditMD;
 		};
 		B658FB3E27DA9E1000EA4DBD /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -90,7 +90,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				2BE487F428245162003F3F64 /* OpenWithCodeEdit.appex in Embed Foundation Extensions */,
+				2BE487F428245162003F3F64 /* OpenWithCodeEditMD.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -110,7 +110,7 @@
 /* Begin PBXFileReference section */
 		283BDCBC2972EEBD002AFF81 /* Package.resolved */ = {isa = PBXFileReference; lastKnownFileType = text; name = Package.resolved; path = CodeEdit.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved; sourceTree = "<group>"; };
 		284DC8502978BA2600BF2770 /* .all-contributorsrc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ".all-contributorsrc"; sourceTree = "<group>"; };
-		2BE487EC28245162003F3F64 /* OpenWithCodeEdit.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OpenWithCodeEdit.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		2BE487EC28245162003F3F64 /* OpenWithCodeEditMD.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OpenWithCodeEditMD.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		589F3E342936185400E1A4DA /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Platforms/MacOSX.platform/Developer/Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
 		58F2EACE292FB2B0004A9BDE /* Documentation.docc */ = {isa = PBXFileReference; lastKnownFileType = folder.documentationcatalog; path = Documentation.docc; sourceTree = "<group>"; };
 		6C67413D2C44A28C00AABDF5 /* ProjectNavigatorViewController+DataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectNavigatorViewController+DataSource.swift"; sourceTree = "<group>"; };
@@ -263,7 +263,7 @@
 				B658FB2C27DA9E0F00EA4DBD /* CodeEdit.app */,
 				B658FB3D27DA9E1000EA4DBD /* CodeEditTests.xctest */,
 				B658FB4727DA9E1000EA4DBD /* CodeEditUITests.xctest */,
-				2BE487EC28245162003F3F64 /* OpenWithCodeEdit.appex */,
+				2BE487EC28245162003F3F64 /* OpenWithCodeEditMD.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -271,9 +271,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		2BE487EB28245162003F3F64 /* OpenWithCodeEdit */ = {
+		2BE487EB28245162003F3F64 /* OpenWithCodeEditMD */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 2BE487F828245162003F3F64 /* Build configuration list for PBXNativeTarget "OpenWithCodeEdit" */;
+			buildConfigurationList = 2BE487F828245162003F3F64 /* Build configuration list for PBXNativeTarget "OpenWithCodeEditMD" */;
 			buildPhases = (
 				2BE487E828245162003F3F64 /* Sources */,
 				2BE487E928245162003F3F64 /* Frameworks */,
@@ -283,9 +283,9 @@
 			);
 			dependencies = (
 			);
-			name = OpenWithCodeEdit;
-			productName = OpenWithCodeEdit;
-			productReference = 2BE487EC28245162003F3F64 /* OpenWithCodeEdit.appex */;
+			name = OpenWithCodeEditMD;
+			productName = OpenWithCodeEditMD;
+			productReference = 2BE487EC28245162003F3F64 /* OpenWithCodeEditMD.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 		B658FB2B27DA9E0F00EA4DBD /* CodeEdit */ = {
@@ -679,6 +679,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CodeEdit/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = CodeEditMD;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2022-2025 CodeEdit";
 				INFOPLIST_KEY_NSPrincipalClass = CodeEdit.CodeEditApplication;
@@ -688,8 +689,8 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = "Change in Info.plist";
-				PRODUCT_BUNDLE_IDENTIFIER = app.codeedit.CodeEdit;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = app.codeedit.CodeEditMD;
+				PRODUCT_NAME = CodeEditMD;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				REGISTER_APP_GROUPS = YES;
 				RUNTIME_EXCEPTION_ALLOW_JIT = YES;
@@ -773,7 +774,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = OpenWithCodeEdit/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = OpenWithCodeEdit;
+				INFOPLIST_KEY_CFBundleDisplayName = OpenWithCodeEditMD;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -783,8 +784,8 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = app.codeedit.CodeEdit.OpenWithCodeEdit;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = app.codeedit.CodeEditMD.OpenWithCodeEditMD;
+				PRODUCT_NAME = OpenWithCodeEditMD;
 				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -880,6 +881,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CodeEdit/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = CodeEditMD;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2022-2025 CodeEdit";
 				INFOPLIST_KEY_NSPrincipalClass = CodeEdit.CodeEditApplication;
@@ -889,8 +891,8 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = "Change in Info.plist";
-				PRODUCT_BUNDLE_IDENTIFIER = app.codeedit.CodeEdit;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = app.codeedit.CodeEditMD;
+				PRODUCT_NAME = CodeEditMD;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				REGISTER_APP_GROUPS = YES;
 				RUNTIME_EXCEPTION_ALLOW_JIT = YES;
@@ -974,7 +976,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = OpenWithCodeEdit/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = OpenWithCodeEdit;
+				INFOPLIST_KEY_CFBundleDisplayName = OpenWithCodeEditMD;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -984,8 +986,8 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = app.codeedit.CodeEdit.OpenWithCodeEdit;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = app.codeedit.CodeEditMD.OpenWithCodeEditMD;
+				PRODUCT_NAME = OpenWithCodeEditMD;
 				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1009,7 +1011,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = OpenWithCodeEdit/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = OpenWithCodeEdit;
+				INFOPLIST_KEY_CFBundleDisplayName = OpenWithCodeEditMD;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1019,8 +1021,8 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = app.codeedit.CodeEdit.OpenWithCodeEdit;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = app.codeedit.CodeEditMD.OpenWithCodeEditMD;
+				PRODUCT_NAME = OpenWithCodeEditMD;
 				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1044,7 +1046,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = OpenWithCodeEdit/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = OpenWithCodeEdit;
+				INFOPLIST_KEY_CFBundleDisplayName = OpenWithCodeEditMD;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1054,8 +1056,8 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = app.codeedit.CodeEdit.OpenWithCodeEdit;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = app.codeedit.CodeEditMD.OpenWithCodeEditMD;
+				PRODUCT_NAME = OpenWithCodeEditMD;
 				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1153,6 +1155,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CodeEdit/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = CodeEditMD;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2022-2025 CodeEdit";
 				INFOPLIST_KEY_NSPrincipalClass = CodeEdit.CodeEditApplication;
@@ -1162,8 +1165,8 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = "Change in Info.plist";
-				PRODUCT_BUNDLE_IDENTIFIER = app.codeedit.CodeEdit;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = app.codeedit.CodeEditMD;
+				PRODUCT_NAME = CodeEditMD;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				REGISTER_APP_GROUPS = YES;
 				RUNTIME_EXCEPTION_ALLOW_JIT = YES;
@@ -1247,7 +1250,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = OpenWithCodeEdit/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = OpenWithCodeEdit;
+				INFOPLIST_KEY_CFBundleDisplayName = OpenWithCodeEditMD;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1257,8 +1260,8 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = app.codeedit.CodeEdit.OpenWithCodeEdit;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = app.codeedit.CodeEditMD.OpenWithCodeEditMD;
+				PRODUCT_NAME = OpenWithCodeEditMD;
 				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1426,6 +1429,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CodeEdit/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = CodeEditMD;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2022-2025 CodeEdit";
 				INFOPLIST_KEY_NSPrincipalClass = CodeEdit.CodeEditApplication;
@@ -1435,8 +1439,8 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = "Change in Info.plist";
-				PRODUCT_BUNDLE_IDENTIFIER = app.codeedit.CodeEdit;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = app.codeedit.CodeEditMD;
+				PRODUCT_NAME = CodeEditMD;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				REGISTER_APP_GROUPS = YES;
 				RUNTIME_EXCEPTION_ALLOW_JIT = YES;
@@ -1470,6 +1474,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CodeEdit/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = CodeEditMD;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2022-2025 CodeEdit";
 				INFOPLIST_KEY_NSPrincipalClass = CodeEdit.CodeEditApplication;
@@ -1479,8 +1484,8 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = "Change in Info.plist";
-				PRODUCT_BUNDLE_IDENTIFIER = app.codeedit.CodeEdit;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = app.codeedit.CodeEditMD;
+				PRODUCT_NAME = CodeEditMD;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				REGISTER_APP_GROUPS = YES;
 				RUNTIME_EXCEPTION_ALLOW_JIT = YES;

@@ -14,7 +14,7 @@ import SwiftUI
 // - TODO: EditorTabView drop-outside event handler.
 
 struct EditorTabs: View {
-    typealias TabID = CEWorkspaceFile.ID
+    typealias TabID = EditorInstance.ID
 
     @Environment(\.colorScheme)
     private var colorScheme
@@ -204,7 +204,7 @@ struct EditorTabs: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.40) {
                     if draggingStartLocation == nil {
                         editor.tabs = .init(openedTabs.compactMap { id in
-                            editor.tabs.first { $0.file.id == id }
+                            editor.tabs.first { $0.id == id }
                         })
                         // workspace.reorderedTabs(openedTabs: openedTabs)
                         // TODO: Fix save state
@@ -238,7 +238,7 @@ struct EditorTabs: View {
     /// Called when the tab count changes or the temporary tab changes.
     /// - Parameter geometryProxy: The geometry proxy to calculate the new width using.
     private func updateForTabCountChange(geometryProxy: GeometryProxy) {
-        openedTabs = editor.tabs.map(\.file.id)
+        openedTabs = editor.tabs.map(\.id)
     }
 
     // swiftlint:enable function_body_length cyclomatic_complexity
@@ -257,15 +257,15 @@ struct EditorTabs: View {
                         spacing: -1 // Negative spacing for overlapping the divider.
                     ) {
                         ForEach(Array(openedTabs.enumerated()), id: \.element) { index, id in
-                            if let item = editor.tabs.first(where: { $0.file.id == id }) {
+                            if let item = editor.tabs.first(where: { $0.id == id }) {
                                 if index != 0
-                                    && editor.selectedTab?.file.id != id
-                                    && editor.selectedTab?.file.id != openedTabs[index - 1] {
+                                    && editor.selectedTab?.id != id
+                                    && editor.selectedTab?.id != openedTabs[index - 1] {
                                     EditorTabDivider()
                                 }
 
                                 EditorTabView(
-                                    file: item.file,
+                                    tab: item,
                                     index: index,
                                     draggingTabId: draggingTabId,
                                     onDragTabId: onDragTabId,
@@ -299,17 +299,17 @@ struct EditorTabs: View {
                                 )
 
                                 if index < openedTabs.count - 1
-                                    && editor.selectedTab?.file.id != id
-                                    && editor.selectedTab?.file.id != openedTabs[index + 1] {
+                                    && editor.selectedTab?.id != id
+                                    && editor.selectedTab?.id != openedTabs[index + 1] {
                                     EditorTabDivider()
                                 }
                             }
                         }
                     }
                     .onAppear {
-                        openedTabs = editor.tabs.map(\.file.id)
+                        openedTabs = editor.tabs.map(\.id)
                         // On first tab appeared, jump to the corresponding position.
-                        scrollReader.scrollTo(editor.selectedTab)
+                        scrollReader.scrollTo(editor.selectedTab?.id)
                     }
                     .onChange(of: editor.tabs) { tabs, newValue in
                         if tabs.count == newValue.count {
@@ -324,21 +324,21 @@ struct EditorTabs: View {
                         Task {
                             try? await Task.sleep(for: .milliseconds(300))
                             withAnimation {
-                                scrollReader.scrollTo(editor.selectedTab?.file.id)
+                                scrollReader.scrollTo(editor.selectedTab?.id)
                             }
                         }
                     }
                     // When selected tab is changed, scroll to it if possible.
                     .onChange(of: editor.selectedTab) { _, newValue in
                         withAnimation {
-                            scrollReader.scrollTo(newValue?.file.id)
+                            scrollReader.scrollTo(newValue?.id)
                         }
                     }
 
                     // When window size changes, re-compute the expected tab width.
                     .onChange(of: geometryProxy.size.width) { _, _ in
                         withAnimation {
-                            scrollReader.scrollTo(editor.selectedTab?.file.id)
+                            scrollReader.scrollTo(editor.selectedTab?.id)
                         }
                     }
                     // When user is not hovering anymore, re-compute the expected tab width immediately.

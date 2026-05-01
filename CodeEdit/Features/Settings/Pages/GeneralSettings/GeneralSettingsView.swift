@@ -23,7 +23,7 @@ struct GeneralSettingsView: View {
 
     init() {
         guard let defaults = UserDefaults.init(
-            suiteName: "app.codeedit.CodeEdit.shared"
+            suiteName: AppRuntime.sharedDefaultsSuiteName
         ) else {
             print("Failed to get/init shared defaults")
             return
@@ -286,6 +286,7 @@ private extension GeneralSettingsView {
                 Button("Check Now") {
                     updater.checkForUpdates()
                 }
+                .disabled(AppRuntime.isCodeEditMDFork)
             } label: {
                 Text("Check for updates")
                 Text("Last checked: \(lastUpdatedString)")
@@ -296,6 +297,7 @@ private extension GeneralSettingsView {
 
     var autoUpdateToggle: some View {
         Toggle("Automatically check for app updates", isOn: $updater.automaticallyChecksForUpdates)
+            .disabled(AppRuntime.isCodeEditMDFork)
     }
 
     var prereleaseToggle: some View {
@@ -352,7 +354,7 @@ private extension GeneralSettingsView {
         Toggle("Show “Open With CodeEdit” option in Finder", isOn: $openInCodeEdit)
             .onChange(of: openInCodeEdit) { _, newValue in
                 guard let defaults = UserDefaults.init(
-                    suiteName: "app.codeedit.CodeEdit.shared"
+                    suiteName: AppRuntime.sharedDefaultsSuiteName
                 ) else {
                     print("Failed to get/init shared defaults")
                     return

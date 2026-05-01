@@ -61,7 +61,7 @@ extension Editor {
 
         if !tabs.contains(where: { $0.file == file }) {
             if let temporaryTab, tabs.contains(temporaryTab) {
-                closeTab(file: temporaryTab.file, fromHistory: true)
+                closeTab(tab: temporaryTab, fromHistory: true)
             }
             openTab(file: file, fromHistory: true)
             if let tab = tabs.first(where: { $0.file.id == file.id }) {
