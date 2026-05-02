@@ -11,6 +11,9 @@ import AppKit
 /// # Please see dev note in ``CELocalShellTerminalView``!
 
 private let terminalFollowScrollThreshold = 0.985
+private let terminalBackwardDelete = String(NSEvent.SpecialKey.delete.unicodeScalar)
+private let terminalKillToBeginningOfLine: [UInt8] = [0x15]
+private let terminalKillPreviousWord: [UInt8] = [0x1b, 0x7f]
 
 class CETerminalView: TerminalView {
     var performanceIdentifier: UUID?
@@ -93,6 +96,26 @@ class CETerminalView: TerminalView {
 
     func updateScrollbackReadingState(position: Double) {
         userIsReadingScrollback = position < terminalFollowScrollThreshold
+    }
+
+    func handleDeleteShortcut(_ event: NSEvent) -> Bool {
+        guard event.charactersIgnoringModifiers == terminalBackwardDelete else {
+            return false
+        }
+
+        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+
+        if modifiers.contains(.command) {
+            send(terminalKillToBeginningOfLine)
+            return true
+        }
+
+        if modifiers.contains(.option) {
+            send(terminalKillPreviousWord)
+            return true
+        }
+
+        return false
     }
 
     @objc

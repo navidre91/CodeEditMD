@@ -8,12 +8,14 @@
 import SwiftUI
 import CodeEditSymbols
 import CodeEditSourceEditor
+import CodeEditTextView
 import OSLog
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "", category: "AppDelegate")
     private let updater = SoftwareUpdater()
+    private var deleteShortcutMonitor: Any?
 
     @Environment(\.openWindow)
     var openWindow
@@ -21,6 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @LazyService var lspService: LSPService
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        installDeleteShortcutMonitor()
         enableWindowSizeSaveOnQuit()
         Settings.shared.preferences.general.appAppearance.applyAppearance()
         checkForFilesToOpen()
@@ -61,7 +64,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
-
+        if let deleteShortcutMonitor {
+            NSEvent.removeMonitor(deleteShortcutMonitor)
+        }
     }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
@@ -83,6 +88,52 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
     func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool {
         false
+    }
+
+    private func installDeleteShortcutMonitor() {
+        guard deleteShortcutMonitor == nil else {
+            return
+        }
+
+        deleteShortcutMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            guard Self.handleDeleteShortcut(event) else {
+                return event
+            }
+
+            return nil
+        }
+    }
+
+    private static func handleDeleteShortcut(_ event: NSEvent) -> Bool {
+        if let terminal = event.window?.firstResponder as? CETerminalView {
+            return terminal.handleDeleteShortcut(event)
+        }
+
+        return handleTextEditingDeleteShortcut(event)
+    }
+
+    private static func handleTextEditingDeleteShortcut(_ event: NSEvent) -> Bool {
+        guard event.charactersIgnoringModifiers == String(NSEvent.SpecialKey.delete.unicodeScalar) else {
+            return false
+        }
+
+        guard let textView = event.window?.firstResponder as? TextView else {
+            return false
+        }
+
+        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+
+        if modifiers.contains(.command) {
+            textView.deleteToBeginningOfLine(event)
+            return true
+        }
+
+        if modifiers.contains(.option) {
+            textView.deleteWordBackward(event)
+            return true
+        }
+
+        return false
     }
 
     func handleOpen() {
