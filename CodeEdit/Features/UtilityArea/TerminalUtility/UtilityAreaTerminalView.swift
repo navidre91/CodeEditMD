@@ -68,6 +68,14 @@ struct UtilityAreaTerminalView: View {
         }
     }
 
+    private var terminalPanelCanRunSelectedShell: Bool {
+        utilityAreaViewModel.selectedTab == .terminal
+            && (
+                utilityAreaViewModel.isMaximized
+                || (!utilityAreaViewModel.isCollapsed && utilityAreaViewModel.currentHeight > 1)
+            )
+    }
+
     /// Finds the selected terminal.
     /// - Returns: The selected terminal.
     private func getSelectedTerminal() -> UtilityAreaTerminal? {
@@ -95,46 +103,50 @@ struct UtilityAreaTerminalView: View {
                 HStack { Spacer() }
 
                 if let selectedTerminal = getSelectedTerminal() {
-                    GeometryReader { geometry in
-                        let containerHeight = geometry.size.height
-                        let totalFontHeight = fontTotalHeight(nsFont: font).rounded(.up)
-                        let constrainedHeight = containerHeight - containerHeight.truncatingRemainder(
-                            dividingBy: totalFontHeight
-                        )
-                        VStack(spacing: 0) {
-                            Spacer(minLength: 0).frame(minHeight: 0)
-                            TerminalEmulatorView(
-                                url: selectedTerminal.url,
-                                terminalID: selectedTerminal.id,
-                                shellType: selectedTerminal.shell,
-                                onTitleChange: { [weak selectedTerminal] newTitle in
-                                    guard let id = selectedTerminal?.id else { return }
-                                    // This can be called whenever, even in a view update so it needs to be dispatched.
-                                    DispatchQueue.main.async { [weak utilityAreaViewModel] in
-                                        if utilityAreaViewModel?.updateTerminal(id, title: newTitle) == true {
-                                            persistTerminals()
-                                        }
-                                    }
-                                },
-                                onCurrentDirectoryChange: { [weak selectedTerminal] directory in
-                                    guard
-                                        let id = selectedTerminal?.id,
-                                        let url = terminalDirectoryURL(from: directory)
-                                    else {
-                                        return
-                                    }
-
-                                    DispatchQueue.main.async { [weak utilityAreaViewModel] in
-                                        if utilityAreaViewModel?.updateTerminal(id, url: url) == true {
-                                            persistTerminals()
-                                        }
-                                    }
-                                }
+                    if terminalPanelCanRunSelectedShell {
+                        GeometryReader { geometry in
+                            let containerHeight = geometry.size.height
+                            let totalFontHeight = fontTotalHeight(nsFont: font).rounded(.up)
+                            let constrainedHeight = containerHeight - containerHeight.truncatingRemainder(
+                                dividingBy: totalFontHeight
                             )
-                            .frame(height: max(0, constrainedHeight - 1))
-                            .id(selectedTerminal.id)
-                            .accessibilityIdentifier("terminal")
+                            VStack(spacing: 0) {
+                                Spacer(minLength: 0).frame(minHeight: 0)
+                                TerminalEmulatorView(
+                                    url: selectedTerminal.url,
+                                    terminalID: selectedTerminal.id,
+                                    shellType: selectedTerminal.shell,
+                                    onTitleChange: { [weak selectedTerminal] newTitle in
+                                        guard let id = selectedTerminal?.id else { return }
+                                        // This can be called during view updates, so dispatch before mutating state.
+                                        DispatchQueue.main.async { [weak utilityAreaViewModel] in
+                                            if utilityAreaViewModel?.updateTerminal(id, title: newTitle) == true {
+                                                persistTerminals()
+                                            }
+                                        }
+                                    },
+                                    onCurrentDirectoryChange: { [weak selectedTerminal] directory in
+                                        guard
+                                            let id = selectedTerminal?.id,
+                                            let url = terminalDirectoryURL(from: directory)
+                                        else {
+                                            return
+                                        }
+
+                                        DispatchQueue.main.async { [weak utilityAreaViewModel] in
+                                            if utilityAreaViewModel?.updateTerminal(id, url: url) == true {
+                                                persistTerminals()
+                                            }
+                                        }
+                                    }
+                                )
+                                .frame(height: max(0, constrainedHeight - 1))
+                                .id(selectedTerminal.id)
+                                .accessibilityIdentifier("terminal")
+                            }
                         }
+                    } else {
+                        Color.clear
                     }
                 } else {
                     CEContentUnavailableView("No Selection")

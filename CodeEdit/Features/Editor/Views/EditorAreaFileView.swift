@@ -25,7 +25,10 @@ struct EditorAreaFileView: View {
     @ViewBuilder var editorAreaFileView: some View {
         if let utType = codeFile.utType, utType.conforms(to: .text) {
             if editorInstance.presentation == .markdownPreview {
-                MarkdownPreviewView(codeFile: codeFile)
+                MarkdownPreviewView(
+                    codeFile: codeFile,
+                    isActive: editor.selectedTab == editorInstance
+                )
             } else {
                 CodeFileView(
                     editorInstance: editorInstance,

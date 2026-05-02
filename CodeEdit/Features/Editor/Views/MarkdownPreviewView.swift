@@ -21,9 +21,12 @@ struct MarkdownPreviewView: View {
     @Environment(\.colorScheme)
     private var colorScheme
     @State private var markdownText: String
+    @State private var needsRender = false
+    private let isActive: Bool
 
-    init(codeFile: CodeFileDocument) {
+    init(codeFile: CodeFileDocument, isActive: Bool = true) {
         self.codeFile = codeFile
+        self.isActive = isActive
         self._markdownText = State(initialValue: codeFile.content?.string ?? "")
     }
 
@@ -35,18 +38,43 @@ struct MarkdownPreviewView: View {
         MarkdownWebView(
             markdown: markdownText,
             baseURL: baseURL,
-            colorScheme: colorScheme
+            colorScheme: colorScheme,
+            isRenderingEnabled: isActive
         )
         .frame(minWidth: 280, maxWidth: .infinity, maxHeight: .infinity)
         .onReceive(
             codeFile.contentCoordinator.textUpdatePublisher
                 .debounce(for: markdownPreviewTextDebounce, scheduler: RunLoop.main)
         ) { _ in
-            markdownText = codeFile.content?.string ?? ""
+            refreshMarkdownIfActive()
         }
         .onChange(of: codeFile.fileURL) { _, _ in
-            markdownText = codeFile.content?.string ?? ""
+            refreshMarkdownIfActive()
         }
+        .onChange(of: isActive) { _, active in
+            guard active, needsRender else {
+                return
+            }
+
+            refreshMarkdown()
+        }
+    }
+
+    private func refreshMarkdownIfActive() {
+        guard isActive else {
+            needsRender = true
+            return
+        }
+
+        refreshMarkdown()
+    }
+
+    private func refreshMarkdown() {
+        let latestMarkdown = codeFile.content?.string ?? ""
+        if markdownText != latestMarkdown {
+            markdownText = latestMarkdown
+        }
+        needsRender = false
     }
 }
 
@@ -60,6 +88,7 @@ private struct MarkdownWebView: NSViewRepresentable {
     let markdown: String
     let baseURL: URL?
     let colorScheme: ColorScheme
+    let isRenderingEnabled: Bool
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -81,12 +110,19 @@ private struct MarkdownWebView: NSViewRepresentable {
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
+        let payload = MarkdownRenderPayload(
+            markdown: markdown,
+            baseURL: baseURL?.absoluteString,
+            colorScheme: colorScheme == .dark ? "dark" : "light"
+        )
+
+        guard isRenderingEnabled else {
+            context.coordinator.deferRender(payload)
+            return
+        }
+
         context.coordinator.render(
-            MarkdownRenderPayload(
-                markdown: markdown,
-                baseURL: baseURL?.absoluteString,
-                colorScheme: colorScheme == .dark ? "dark" : "light"
-            ),
+            payload,
             in: webView
         )
     }
@@ -97,8 +133,10 @@ private struct MarkdownWebView: NSViewRepresentable {
         private var renderedPayload: MarkdownRenderPayload?
         private var renderWorkItem: DispatchWorkItem?
         private var renderGeneration = 0
+        private var renderingEnabled = true
 
         func render(_ payload: MarkdownRenderPayload, in webView: WKWebView) {
+            renderingEnabled = true
             pendingPayload = payload
 
             guard didLoadPage else {
@@ -153,8 +191,18 @@ private struct MarkdownWebView: NSViewRepresentable {
             webView.evaluateJavaScript("window.renderMarkdown(\(json));")
         }
 
+        func deferRender(_ payload: MarkdownRenderPayload) {
+            renderingEnabled = false
+            pendingPayload = payload
+            renderWorkItem?.cancel()
+            renderWorkItem = nil
+        }
+
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             didLoadPage = true
+            guard renderingEnabled else {
+                return
+            }
             renderPendingPayload(in: webView)
         }
 
