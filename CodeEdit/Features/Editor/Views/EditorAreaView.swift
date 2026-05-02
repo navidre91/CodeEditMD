@@ -60,6 +60,7 @@ struct EditorAreaView: View {
             if let selected = editor.selectedTab {
                 if let codeFile = codeFile?() {
                     EditorAreaFileView(editorInstance: selected, codeFile: codeFile)
+                        .environmentObject(editor)
                         .focusedObject(editor)
                         .transformEnvironment(\.edgeInsets) { insets in
                             insets.top += editorInsetAmount

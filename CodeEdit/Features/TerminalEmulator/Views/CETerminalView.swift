@@ -11,10 +11,10 @@ import AppKit
 /// # Please see dev note in ``CELocalShellTerminalView``!
 
 private let terminalFollowScrollThreshold = 0.985
-private let terminalScrollJumpLineLimit = 100_000
 
 class CETerminalView: TerminalView {
     var performanceIdentifier: UUID?
+    private var userIsReadingScrollback = false
 
     override func setFrameSize(_ newSize: NSSize) {
         if newSize != .zero {
@@ -52,7 +52,7 @@ class CETerminalView: TerminalView {
     }
 
     var shouldFollowOutput: Bool {
-        !canScroll || scrollPosition >= terminalFollowScrollThreshold
+        !userIsReadingScrollback && (!canScroll || scrollPosition >= terminalFollowScrollThreshold)
     }
 
     func preserveScrollPositionIfNeeded<T>(_ operation: () -> T) -> T {
@@ -62,8 +62,6 @@ class CETerminalView: TerminalView {
 
         if shouldPreserve {
             restoreScrollPosition(previousYDisplay)
-        } else {
-            jumpToBottomIfNeeded()
         }
 
         return result
@@ -93,12 +91,8 @@ class CETerminalView: TerminalView {
         }
     }
 
-    private func jumpToBottomIfNeeded() {
-        guard canScroll, scrollPosition < 1 else {
-            return
-        }
-
-        scrollDown(lines: terminalScrollJumpLineLimit)
+    func updateScrollbackReadingState(position: Double) {
+        userIsReadingScrollback = position < terminalFollowScrollThreshold
     }
 
     @objc

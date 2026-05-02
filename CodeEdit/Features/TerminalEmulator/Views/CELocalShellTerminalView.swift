@@ -173,7 +173,9 @@ class CELocalShellTerminalView: CETerminalView, TerminalViewDelegate, LocalProce
         process.send(data: data)
     }
 
-    public func scrolled(source: TerminalView, position: Double) { }
+    public func scrolled(source: TerminalView, position: Double) {
+        updateScrollbackReadingState(position: position)
+    }
 
     // MARK: - LocalProcessDelegate
 
