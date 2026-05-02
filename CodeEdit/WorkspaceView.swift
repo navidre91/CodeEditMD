@@ -191,14 +191,19 @@ struct WorkspaceView: View {
                     Rectangle()
                         .opacity(0)
                         .onChange(of: geo.size.height) { _, newHeight in
-                            drawerHeight = newHeight
+                            updateUtilityAreaHeight(newHeight)
                         }
                         .onAppear {
-                            drawerHeight = geo.size.height
+                            updateUtilityAreaHeight(geo.size.height)
                         }
                 }
             }
             .accessibilityHidden(true)
+    }
+
+    private func updateUtilityAreaHeight(_ newHeight: CGFloat) {
+        drawerHeight = newHeight
+        utilityAreaViewModel.currentHeight = Double(newHeight)
     }
 
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
