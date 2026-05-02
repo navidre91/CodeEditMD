@@ -450,8 +450,13 @@ __codeedit_preexec() {
     builtin printf "\033]0;%s\007" "$1"
 }
 
+__codeedit_update_cwd() {
+    builtin printf "\033]7;file://%s%s\007" "${HOSTNAME:-localhost}" "$PWD"
+}
+
 __codeedit_precmd() {
     builtin printf "\033]0;bash\007"
+    __codeedit_update_cwd
 }
 
 preexec_functions+=(__codeedit_preexec)

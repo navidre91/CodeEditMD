@@ -50,8 +50,13 @@ __codeedit_preexec() {
     builtin printf "\033]0;%s\007" "$1"
 }
 
+__codeedit_update_cwd() {
+    builtin printf "\033]7;file://%s%s\007" "${HOST:-localhost}" "$PWD"
+}
+
 __codeedit_precmd() {
     builtin printf "\033]0;zsh\007"
+    __codeedit_update_cwd
 }
 
 add-zsh-hook preexec __codeedit_preexec

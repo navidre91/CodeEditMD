@@ -217,6 +217,19 @@ struct UtilityAreaTerminalView: View {
             return url
         }
 
+        if directory.hasPrefix("file://") {
+            let filePath = directory
+                .trimmingPrefix("file://")
+                .drop { $0 != "/" }
+
+            guard !filePath.isEmpty else {
+                return nil
+            }
+
+            let path = String(filePath).removingPercentEncoding ?? String(filePath)
+            return URL(filePath: path, directoryHint: .isDirectory)
+        }
+
         return URL(filePath: directory, directoryHint: .isDirectory)
     }
 
