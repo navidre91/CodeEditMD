@@ -8,13 +8,16 @@
 // swiftlint:disable file_length
 
 import AppKit
-import Combine
 import SwiftUI
 import UniformTypeIdentifiers
 import WebKit
 
-private let markdownPreviewTextDebounce = RunLoop.SchedulerTimeType.Stride.milliseconds(120)
+private let markdownPreviewTextDebounce: DispatchTimeInterval = .milliseconds(120)
+private let markdownPreviewLargeDocumentDebounce: DispatchTimeInterval = .milliseconds(700)
+private let markdownPreviewHugeDocumentDebounce: DispatchTimeInterval = .milliseconds(1_800)
 private let markdownPreviewRenderDebounce: DispatchTimeInterval = .milliseconds(80)
+private let markdownPreviewLargeDocumentLength = 1_000_000
+private let markdownPreviewHugeDocumentLength = 5_000_000
 
 struct MarkdownPreviewView: View {
     @ObservedObject private var codeFile: CodeFileDocument
@@ -22,6 +25,7 @@ struct MarkdownPreviewView: View {
     private var colorScheme
     @State private var markdownText: String
     @State private var needsRender = false
+    @State private var refreshWorkItem: DispatchWorkItem?
     private let isActive: Bool
 
     init(codeFile: CodeFileDocument, isActive: Bool = true) {
@@ -42,34 +46,77 @@ struct MarkdownPreviewView: View {
             isRenderingEnabled: isActive
         )
         .frame(minWidth: 280, maxWidth: .infinity, maxHeight: .infinity)
-        .onReceive(
-            codeFile.contentCoordinator.textUpdatePublisher
-                .debounce(for: markdownPreviewTextDebounce, scheduler: RunLoop.main)
-        ) { _ in
+        .onReceive(codeFile.contentCoordinator.textUpdatePublisher) { _ in
             refreshMarkdownIfActive()
         }
         .onChange(of: codeFile.fileURL) { _, _ in
-            refreshMarkdownIfActive()
+            refreshMarkdownIfActive(immediate: true)
         }
         .onChange(of: isActive) { _, active in
-            guard active, needsRender else {
+            guard active else {
+                cancelScheduledRefresh()
                 return
             }
 
-            refreshMarkdown()
+            if needsRender {
+                refreshMarkdown()
+            }
+        }
+        .onDisappear {
+            cancelScheduledRefresh()
         }
     }
 
-    private func refreshMarkdownIfActive() {
+    private var markdownRefreshDebounce: DispatchTimeInterval {
+        let documentLength = codeFile.content?.length ?? markdownText.utf16.count
+
+        if documentLength >= markdownPreviewHugeDocumentLength {
+            return markdownPreviewHugeDocumentDebounce
+        }
+
+        if documentLength >= markdownPreviewLargeDocumentLength {
+            return markdownPreviewLargeDocumentDebounce
+        }
+
+        return markdownPreviewTextDebounce
+    }
+
+    private func refreshMarkdownIfActive(immediate: Bool = false) {
         guard isActive else {
             needsRender = true
+            cancelScheduledRefresh()
             return
         }
 
-        refreshMarkdown()
+        if immediate {
+            refreshMarkdown()
+        } else {
+            scheduleMarkdownRefresh()
+        }
+    }
+
+    private func scheduleMarkdownRefresh() {
+        cancelScheduledRefresh()
+
+        let workItem = DispatchWorkItem {
+            refreshMarkdown()
+        }
+
+        refreshWorkItem = workItem
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + markdownRefreshDebounce,
+            execute: workItem
+        )
+    }
+
+    private func cancelScheduledRefresh() {
+        refreshWorkItem?.cancel()
+        refreshWorkItem = nil
     }
 
     private func refreshMarkdown() {
+        cancelScheduledRefresh()
+
         let latestMarkdown = codeFile.content?.string ?? ""
         if markdownText != latestMarkdown {
             markdownText = latestMarkdown
