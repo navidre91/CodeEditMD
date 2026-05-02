@@ -11,6 +11,8 @@ import SwiftUI
 ///
 /// A model class to host and manage data for the Utility area.
 class UtilityAreaViewModel: ObservableObject {
+    private var restorationSaveWorkItem: DispatchWorkItem?
+
     private struct TerminalRestorationState: Codable {
         let terminals: [TerminalRestorationItem]
         let selectedTerminalIDs: [UUID]
@@ -95,6 +97,9 @@ class UtilityAreaViewModel: ObservableObject {
     }
 
     func saveRestorationState(_ workspace: WorkspaceDocument) {
+        restorationSaveWorkItem?.cancel()
+        restorationSaveWorkItem = nil
+
         workspace.addToWorkspaceState(key: .utilityAreaCollapsed, value: isCollapsed)
         workspace.addToWorkspaceState(key: .utilityAreaHeight, value: currentHeight)
         workspace.addToWorkspaceState(key: .utilityAreaMaximized, value: isMaximized)
@@ -107,6 +112,20 @@ class UtilityAreaViewModel: ObservableObject {
         if let data = try? JSONEncoder().encode(state) {
             workspace.addToWorkspaceState(key: .openTerminals, value: data)
         }
+    }
+
+    func scheduleRestorationStateSave(_ workspace: WorkspaceDocument) {
+        restorationSaveWorkItem?.cancel()
+
+        let workItem = DispatchWorkItem { [weak self, weak workspace] in
+            guard let self, let workspace else {
+                return
+            }
+            self.saveRestorationState(workspace)
+        }
+
+        restorationSaveWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4, execute: workItem)
     }
 
     func togglePanel(animation: Bool = true) {
@@ -141,15 +160,32 @@ class UtilityAreaViewModel: ObservableObject {
     ///   - id: The id of the terminal to update.
     ///   - title: The title to set. If left `nil`, will set the terminal's
     ///            ``UtilityAreaTerminal/customTitle`` to `false`.
-    func updateTerminal(_ id: UUID, title: String?) {
-        guard let terminal = terminals.first(where: { $0.id == id }) else { return }
+    @discardableResult
+    func updateTerminal(_ id: UUID, title: String?) -> Bool {
+        guard let terminal = terminals.first(where: { $0.id == id }) else { return false }
+
         if let newTitle = title {
+            var didChange = false
+
             if !terminal.customTitle {
-                terminal.title = newTitle
+                if terminal.title != newTitle {
+                    terminal.title = newTitle
+                    didChange = true
+                }
             }
-            terminal.terminalTitle = newTitle
+
+            if terminal.terminalTitle != newTitle {
+                terminal.terminalTitle = newTitle
+                didChange = true
+            }
+
+            return didChange
         } else {
+            guard terminal.customTitle else {
+                return false
+            }
             terminal.customTitle = false
+            return true
         }
     }
 
@@ -157,9 +193,14 @@ class UtilityAreaViewModel: ObservableObject {
     /// - Parameters:
     ///   - id: The id of the terminal to update.
     ///   - url: The current directory URL reported by the shell.
-    func updateTerminal(_ id: UUID, url: URL) {
-        guard let terminal = terminals.first(where: { $0.id == id }) else { return }
+    @discardableResult
+    func updateTerminal(_ id: UUID, url: URL) -> Bool {
+        guard let terminal = terminals.first(where: { $0.id == id }), terminal.url != url else {
+            return false
+        }
+
         terminal.url = url
+        return true
     }
 
     /// Create a new terminal if there are no existing terminals.

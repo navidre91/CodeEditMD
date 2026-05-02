@@ -146,16 +146,30 @@ struct TerminalEmulatorView: NSViewRepresentable {
     /// A compact fingerprint of the settings that affect terminal rendering.
     private var configurationSignature: String {
         [
-            String(terminalSettings.hashValue),
-            font.fontName,
-            String(format: "%.2f", font.pointSize),
-            colors.map { String(describing: $0) }.joined(separator: ","),
-            colorSignature(cursorColor),
-            colorSignature(selectionColor),
-            colorSignature(textColor),
-            colorSignature(terminalSettings.useThemeBackground ? backgroundColor : .clear),
-            String(describing: colorAppearance?.name)
+            "appearance=\(terminalSettings.darkAppearance)",
+            "themeBackground=\(terminalSettings.useThemeBackground)",
+            "optionAsMeta=\(terminalSettings.optionAsMeta)",
+            "cursorStyle=\(terminalSettings.cursorStyle.rawValue)",
+            "cursorBlink=\(terminalSettings.cursorBlink)",
+            "useTextEditorFont=\(terminalSettings.useTextEditorFont)",
+            "font=\(font.fontName):\(String(format: "%.2f", font.pointSize))",
+            "ansi=\(ansiColorSignature)",
+            "cursor=\(colorSignature(cursorColor))",
+            "selection=\(colorSignature(selectionColor))",
+            "text=\(colorSignature(textColor))",
+            "background=\(colorSignature(terminalSettings.useThemeBackground ? backgroundColor : .clear))",
+            "nsAppearance=\(colorAppearance?.name.rawValue ?? "")"
         ].joined(separator: "|")
+    }
+
+    private var ansiColorSignature: String {
+        if let selectedTheme = Settings[\.theme].matchAppearance && Settings[\.terminal].darkAppearance
+            ? themeModel.selectedDarkTheme
+            : themeModel.selectedTheme,
+           let index = themeModel.themes.firstIndex(of: selectedTheme) {
+            return themeModel.themes[index].terminal.ansiColors.joined(separator: ",")
+        }
+        return ""
     }
 
     /// returns a `NSAppearance` based on the user setting of the terminal appearance,
