@@ -250,12 +250,21 @@ final class Editor: ObservableObject, Identifiable {
         closeTab(file: file)
     }
 
+    private func existingMarkdownTab(for file: CEWorkspaceFile, presentation: Tab.Presentation) -> Tab? {
+        tabs.first { $0.file == file && $0.presentation == presentation }
+    }
+
+    private func markdownTab(for file: CEWorkspaceFile, presentation: Tab.Presentation) -> Tab {
+        existingMarkdownTab(for: file, presentation: presentation)
+            ?? Tab(workspace: workspace, file: file, presentation: presentation)
+    }
+
     func selectMarkdownPresentation(_ presentation: Tab.Presentation) {
         guard let file = selectedTab?.file, file.url.isMarkdownDocument else {
             return
         }
 
-        openTab(tab: Tab(workspace: workspace, file: file, presentation: presentation))
+        openTab(tab: markdownTab(for: file, presentation: presentation))
     }
 
     func openMarkdownPair(for file: CEWorkspaceFile) {
@@ -264,8 +273,8 @@ final class Editor: ObservableObject, Identifiable {
             return
         }
 
-        let source = Tab(workspace: workspace, file: file, presentation: .source)
-        let preview = Tab(workspace: workspace, file: file, presentation: .markdownPreview)
+        let source = markdownTab(for: file, presentation: .source)
+        let preview = markdownTab(for: file, presentation: .markdownPreview)
 
         if !tabs.contains(source) {
             openTab(tab: source)
@@ -281,8 +290,8 @@ final class Editor: ObservableObject, Identifiable {
     ///   - asTemporary: indicates whether the tab should be opened as a temporary tab or a permanent tab.
     func openTab(file: CEWorkspaceFile, asTemporary: Bool) {
         if file.url.isMarkdownDocument {
-            let source = EditorInstance(workspace: workspace, file: file, presentation: .source)
-            let preview = EditorInstance(workspace: workspace, file: file, presentation: .markdownPreview)
+            let source = markdownTab(for: file, presentation: .source)
+            let preview = markdownTab(for: file, presentation: .markdownPreview)
 
             if !tabs.contains(source) {
                 openTab(tab: source)
@@ -361,8 +370,8 @@ final class Editor: ObservableObject, Identifiable {
     ///   - fromHistory: Indicates whether the tab has been opened from going back in history.
     func openTab(file: CEWorkspaceFile, at index: Int? = nil, fromHistory: Bool = false) {
         if file.url.isMarkdownDocument {
-            let source = Tab(workspace: workspace, file: file, presentation: .source)
-            let preview = Tab(workspace: workspace, file: file, presentation: .markdownPreview)
+            let source = markdownTab(for: file, presentation: .source)
+            let preview = markdownTab(for: file, presentation: .markdownPreview)
             let sourceExists = tabs.contains(source)
 
             if !sourceExists {

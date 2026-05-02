@@ -13,6 +13,9 @@ import SwiftUI
 import UniformTypeIdentifiers
 import WebKit
 
+private let markdownPreviewTextDebounce = RunLoop.SchedulerTimeType.Stride.milliseconds(120)
+private let markdownPreviewRenderDebounce: DispatchTimeInterval = .milliseconds(80)
+
 struct MarkdownPreviewView: View {
     @ObservedObject private var codeFile: CodeFileDocument
     @Environment(\.colorScheme)
@@ -37,7 +40,7 @@ struct MarkdownPreviewView: View {
         .frame(minWidth: 280, maxWidth: .infinity, maxHeight: .infinity)
         .onReceive(
             codeFile.contentCoordinator.textUpdatePublisher
-                .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
+                .debounce(for: markdownPreviewTextDebounce, scheduler: RunLoop.main)
         ) { _ in
             markdownText = codeFile.content?.string ?? ""
         }
@@ -92,11 +95,50 @@ private struct MarkdownWebView: NSViewRepresentable {
         private var didLoadPage = false
         private var pendingPayload: MarkdownRenderPayload?
         private var renderedPayload: MarkdownRenderPayload?
+        private var renderWorkItem: DispatchWorkItem?
+        private var renderGeneration = 0
 
         func render(_ payload: MarkdownRenderPayload, in webView: WKWebView) {
             pendingPayload = payload
 
-            guard didLoadPage, payload != renderedPayload else {
+            guard didLoadPage else {
+                return
+            }
+
+            guard payload != renderedPayload else {
+                renderWorkItem?.cancel()
+                renderWorkItem = nil
+                return
+            }
+
+            scheduleRender(in: webView)
+        }
+
+        private func scheduleRender(in webView: WKWebView) {
+            renderWorkItem?.cancel()
+            renderGeneration += 1
+            let generation = renderGeneration
+
+            let workItem = DispatchWorkItem { [weak self, weak webView] in
+                guard let self, let webView, self.renderGeneration == generation else {
+                    return
+                }
+
+                self.renderPendingPayload(in: webView)
+            }
+
+            renderWorkItem = workItem
+            DispatchQueue.main.asyncAfter(
+                deadline: .now() + markdownPreviewRenderDebounce,
+                execute: workItem
+            )
+        }
+
+        private func renderPendingPayload(in webView: WKWebView) {
+            renderWorkItem?.cancel()
+            renderWorkItem = nil
+
+            guard let payload = pendingPayload, payload != renderedPayload else {
                 return
             }
 
@@ -113,10 +155,7 @@ private struct MarkdownWebView: NSViewRepresentable {
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             didLoadPage = true
-
-            if let pendingPayload {
-                render(pendingPayload, in: webView)
-            }
+            renderPendingPayload(in: webView)
         }
 
         func webView(
@@ -693,6 +732,25 @@ private func markdownPreviewHTML(autorenderPayload: MarkdownRenderPayload? = nil
           return window.marked && window.DOMPurify && window.katex;
         }
 
+        function currentScrollProgress() {
+          const scrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
+          if (scrollableHeight <= 0) {
+            return 0;
+          }
+
+          return window.scrollY / scrollableHeight;
+        }
+
+        function restoreScrollProgress(progress) {
+          const scrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
+          if (scrollableHeight <= 0) {
+            return;
+          }
+
+          const nextScrollY = Math.max(0, Math.min(scrollableHeight, scrollableHeight * progress));
+          window.scrollTo(0, nextScrollY);
+        }
+
         function renderLatestPayload() {
           if (!latestPayload) {
             return;
@@ -725,6 +783,7 @@ private func markdownPreviewHTML(autorenderPayload: MarkdownRenderPayload? = nil
           setRendererStatus(null);
           document.documentElement.dataset.colorScheme = latestPayload.colorScheme;
 
+          const previousScrollProgress = currentScrollProgress();
           const { protectedMarkdown, mathItems } = protectMath(latestPayload.markdown || "");
           const html = marked.parse(protectedMarkdown);
           content.innerHTML = DOMPurify.sanitize(html, {
@@ -740,6 +799,7 @@ private func markdownPreviewHTML(autorenderPayload: MarkdownRenderPayload? = nil
           rewriteRelativeURLs(latestPayload.baseURL);
           blockRemoteImages();
           replaceMathPlaceholders(mathItems);
+          restoreScrollProgress(previousScrollProgress);
         }
 
         window.renderMarkdown = function(payload) {
