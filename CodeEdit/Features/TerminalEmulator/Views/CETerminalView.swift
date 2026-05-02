@@ -10,10 +10,17 @@ import AppKit
 
 /// # Please see dev note in ``CELocalShellTerminalView``!
 
+private let terminalFollowScrollThreshold = 0.985
+private let terminalScrollJumpLineLimit = 100_000
+
 class CETerminalView: TerminalView {
+    var performanceIdentifier: UUID?
+
     override func setFrameSize(_ newSize: NSSize) {
         if newSize != .zero {
-            super.setFrameSize(newSize)
+            preservingScrollPositionIfNeeded {
+                super.setFrameSize(newSize)
+            }
         }
     }
 
@@ -23,9 +30,75 @@ class CETerminalView: TerminalView {
         }
         set {
             if newValue.size != .zero {
-                super.frame = newValue
+                preservingScrollPositionIfNeeded {
+                    super.frame = newValue
+                }
             }
         }
+    }
+
+    override func viewDidMoveToSuperview() {
+        super.viewDidMoveToSuperview()
+
+        guard let performanceIdentifier else {
+            return
+        }
+
+        if superview == nil {
+            TerminalPerformanceLog.mark("terminal detached \(performanceIdentifier)")
+        } else {
+            TerminalPerformanceLog.mark("terminal attached \(performanceIdentifier)")
+        }
+    }
+
+    var shouldFollowOutput: Bool {
+        !canScroll || scrollPosition >= terminalFollowScrollThreshold
+    }
+
+    func preserveScrollPositionIfNeeded<T>(_ operation: () -> T) -> T {
+        let shouldPreserve = !shouldFollowOutput
+        let previousYDisplay = terminal.buffer.yDisp
+        let result = operation()
+
+        if shouldPreserve {
+            restoreScrollPosition(previousYDisplay)
+        } else {
+            jumpToBottomIfNeeded()
+        }
+
+        return result
+    }
+
+    private func preservingScrollPositionIfNeeded(_ operation: () -> Void) {
+        guard terminal != nil else {
+            operation()
+            return
+        }
+
+        let start = TerminalPerformanceLog.timestamp()
+        preserveScrollPositionIfNeeded(operation)
+
+        if let performanceIdentifier {
+            TerminalPerformanceLog.duration("terminal resize \(performanceIdentifier)", from: start)
+        }
+    }
+
+    private func restoreScrollPosition(_ previousYDisplay: Int) {
+        let delta = terminal.buffer.yDisp - previousYDisplay
+
+        if delta > 0 {
+            scrollUp(lines: delta)
+        } else if delta < 0 {
+            scrollDown(lines: -delta)
+        }
+    }
+
+    private func jumpToBottomIfNeeded() {
+        guard canScroll, scrollPosition < 1 else {
+            return
+        }
+
+        scrollDown(lines: terminalScrollJumpLineLimit)
     }
 
     @objc

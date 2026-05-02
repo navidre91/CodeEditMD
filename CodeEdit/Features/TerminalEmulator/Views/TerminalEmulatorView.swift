@@ -185,12 +185,15 @@ struct TerminalEmulatorView: NSViewRepresentable {
 
     /// Inherited from NSViewRepresentable.makeNSView(context:).
     func makeNSView(context: Context) -> CELocalShellTerminalView {
+        let start = TerminalPerformanceLog.timestamp()
         let view: CELocalShellTerminalView
+        var source = "cached"
 
         switch mode {
         case .shell(let shellType):
             let isCached = TerminalCache.shared.getTerminalView(terminalID) != nil
             view = TerminalCache.shared.getTerminalView(terminalID) ?? CELocalShellTerminalView(frame: .zero)
+            source = isCached ? "cached" : "new"
             if !isCached {
                 view.startProcess(workspaceURL: url, shell: shellType)
                 configureView(view, forceRedraw: false)
@@ -204,6 +207,7 @@ struct TerminalEmulatorView: NSViewRepresentable {
                 let newView = CEActiveTaskTerminalView(activeTask: activeTask)
                 activeTask.output = newView
                 view = newView
+                source = "new-task"
             }
             if !activeTask.hasOutputBeenConfigured {
                 configureView(view, forceRedraw: false)
@@ -213,9 +217,11 @@ struct TerminalEmulatorView: NSViewRepresentable {
             }
         }
 
+        view.performanceIdentifier = terminalID
         view.processDelegate = context.coordinator
 
         TerminalCache.shared.cacheTerminalView(for: terminalID, view: view)
+        TerminalPerformanceLog.duration("terminal makeNSView \(source) \(terminalID)", from: start)
         return view
     }
 
@@ -251,11 +257,17 @@ struct TerminalEmulatorView: NSViewRepresentable {
     }
 
     func updateNSView(_ view: CELocalShellTerminalView, context: Context) {
+        let start = TerminalPerformanceLog.timestamp()
+        view.performanceIdentifier = terminalID
+        view.processDelegate = context.coordinator
+
         guard TerminalCache.shared.getConfigurationSignature(terminalID) != configurationSignature else {
+            TerminalPerformanceLog.duration("terminal updateNSView unchanged \(terminalID)", from: start)
             return
         }
 
         configureView(view, forceRedraw: true)
+        TerminalPerformanceLog.duration("terminal updateNSView reconfigured \(terminalID)", from: start)
     }
 
     private func colorSignature(_ color: NSColor) -> String {

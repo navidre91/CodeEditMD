@@ -186,7 +186,9 @@ class CELocalShellTerminalView: CETerminalView, TerminalViewDelegate, LocalProce
     ///
     /// Passes data from the shell to the terminal.
     public func dataReceived(slice: ArraySlice<UInt8>) {
-        feed(byteArray: slice)
+        preserveScrollPositionIfNeeded {
+            feed(byteArray: slice)
+        }
     }
 
     /// Implements the LocalProcessDelegate.getWindowSize method
