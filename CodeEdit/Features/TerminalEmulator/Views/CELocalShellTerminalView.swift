@@ -65,7 +65,7 @@ class CELocalShellTerminalView: CETerminalView, TerminalViewDelegate, LocalProce
     public weak var processDelegate: CELocalShellTerminalViewDelegate?
 
     func setup() {
-        terminal = Terminal(delegate: self, options: TerminalOptions(scrollback: 2000))
+        terminal = Terminal(delegate: self, options: TerminalOptions(scrollback: 10000))
         terminalDelegate = self
         process = LocalProcess(delegate: self)
     }
