@@ -18,6 +18,7 @@ private let markdownPreviewHugeDocumentDebounce: DispatchTimeInterval = .millise
 private let markdownPreviewRenderDebounce: DispatchTimeInterval = .milliseconds(80)
 private let markdownPreviewLargeDocumentLength = 1_000_000
 private let markdownPreviewHugeDocumentLength = 5_000_000
+private let markdownResourceScheme = "codeedit-md-resource"
 
 struct MarkdownPreviewView: View {
     @ObservedObject private var codeFile: CodeFileDocument
@@ -129,6 +130,7 @@ struct MarkdownRenderPayload: Codable, Equatable {
     let markdown: String
     let baseURL: String?
     let colorScheme: String
+    let useResourceScheme: Bool
 }
 
 private struct MarkdownWebView: NSViewRepresentable {
@@ -145,6 +147,10 @@ private struct MarkdownWebView: NSViewRepresentable {
         let configuration = WKWebViewConfiguration()
         configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
+        configuration.setURLSchemeHandler(
+            MarkdownResourceSchemeHandler(),
+            forURLScheme: markdownResourceScheme
+        )
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
@@ -160,7 +166,8 @@ private struct MarkdownWebView: NSViewRepresentable {
         let payload = MarkdownRenderPayload(
             markdown: markdown,
             baseURL: baseURL?.absoluteString,
-            colorScheme: colorScheme == .dark ? "dark" : "light"
+            colorScheme: colorScheme == .dark ? "dark" : "light",
+            useResourceScheme: true
         )
 
         guard isRenderingEnabled else {
@@ -272,6 +279,91 @@ private struct MarkdownWebView: NSViewRepresentable {
     }
 }
 
+private final class MarkdownResourceSchemeHandler: NSObject, WKURLSchemeHandler {
+    private let fileQueue = DispatchQueue(
+        label: "app.codeedit.markdown-preview.resource-handler",
+        qos: .userInitiated
+    )
+    private var activeTasks = Set<ObjectIdentifier>()
+    private let lock = NSLock()
+
+    func webView(_ webView: WKWebView, start urlSchemeTask: WKURLSchemeTask) {
+        let taskID = ObjectIdentifier(urlSchemeTask)
+        lock.lock()
+        activeTasks.insert(taskID)
+        lock.unlock()
+
+        guard let requestURL = urlSchemeTask.request.url,
+              let fileURL = Self.resolveFileURL(from: requestURL) else {
+            fail(taskID: taskID, task: urlSchemeTask, with: URLError(.badURL))
+            return
+        }
+
+        fileQueue.async { [weak self] in
+            guard let self else { return }
+            do {
+                let data = try Data(contentsOf: fileURL, options: .mappedIfSafe)
+                let response = URLResponse(
+                    url: requestURL,
+                    mimeType: Self.mimeType(for: fileURL),
+                    expectedContentLength: data.count,
+                    textEncodingName: nil
+                )
+                DispatchQueue.main.async {
+                    self.complete(taskID: taskID, task: urlSchemeTask, response: response, data: data)
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.fail(taskID: taskID, task: urlSchemeTask, with: error)
+                }
+            }
+        }
+    }
+
+    func webView(_ webView: WKWebView, stop urlSchemeTask: WKURLSchemeTask) {
+        lock.lock()
+        activeTasks.remove(ObjectIdentifier(urlSchemeTask))
+        lock.unlock()
+    }
+
+    private func complete(
+        taskID: ObjectIdentifier,
+        task: WKURLSchemeTask,
+        response: URLResponse,
+        data: Data
+    ) {
+        lock.lock()
+        let wasActive = activeTasks.remove(taskID) != nil
+        lock.unlock()
+        guard wasActive else { return }
+        task.didReceive(response)
+        task.didReceive(data)
+        task.didFinish()
+    }
+
+    private func fail(taskID: ObjectIdentifier, task: WKURLSchemeTask, with error: Error) {
+        lock.lock()
+        let wasActive = activeTasks.remove(taskID) != nil
+        lock.unlock()
+        guard wasActive else { return }
+        task.didFailWithError(error)
+    }
+
+    private static func resolveFileURL(from url: URL) -> URL? {
+        let path = url.path
+        guard !path.isEmpty else { return nil }
+        return URL(fileURLWithPath: path)
+    }
+
+    private static func mimeType(for url: URL) -> String {
+        if let type = UTType(filenameExtension: url.pathExtension),
+           let mime = type.preferredMIMEType {
+            return mime
+        }
+        return "application/octet-stream"
+    }
+}
+
 enum MarkdownPreviewExporter {
     static func exportHTML(markdown: String, sourceURL: URL?) {
         let savePanel = NSSavePanel()
@@ -296,7 +388,8 @@ enum MarkdownPreviewExporter {
             autorenderPayload: MarkdownRenderPayload(
                 markdown: markdown,
                 baseURL: sourceURL?.deletingLastPathComponent().absoluteString,
-                colorScheme: "light"
+                colorScheme: "light",
+                useResourceScheme: false
             )
         )
     }
@@ -312,8 +405,8 @@ enum MarkdownPreviewExporter {
 
 private let markdownPreviewContentSecurityPolicy = [
     "default-src 'none'",
-    "img-src 'self' file: data:",
-    "media-src 'self' file: data:",
+    "img-src 'self' file: data: \(markdownResourceScheme):",
+    "media-src 'self' file: data: \(markdownResourceScheme):",
     "style-src 'unsafe-inline'",
     "script-src 'unsafe-inline'",
     "font-src data:",
@@ -507,12 +600,18 @@ private func markdownPreviewHTML(autorenderPayload: MarkdownRenderPayload? = nil
           });
         }
 
+        const MARKDOWN_RESOURCE_SCHEME = "\(markdownResourceScheme)";
+
         function isAbsoluteURL(value) {
           return /^[a-z][a-z0-9+.-]*:/i.test(value);
         }
 
         function isRemoteURL(value) {
           return /^https?:\\/\\//i.test(value);
+        }
+
+        function toResourceURL(fileURLString) {
+          return MARKDOWN_RESOURCE_SCHEME + ":" + fileURLString.substring("file:".length);
         }
 
         function blockRemoteImages() {
@@ -529,15 +628,32 @@ private func markdownPreviewHTML(autorenderPayload: MarkdownRenderPayload? = nil
           });
         }
 
-        function rewriteRelativeURLs(baseURL) {
+        function rewriteRelativeURLs(baseURL, useResourceScheme) {
           if (!baseURL) {
             return;
           }
 
           content.querySelectorAll("img[src]").forEach((image) => {
             const source = image.getAttribute("src");
-            if (source && !isAbsoluteURL(source)) {
-              image.src = new URL(source, baseURL).href;
+            if (!source) {
+              return;
+            }
+
+            let resolved;
+            if (isAbsoluteURL(source)) {
+              if (/^file:/i.test(source)) {
+                resolved = source;
+              } else {
+                return;
+              }
+            } else {
+              resolved = new URL(source, baseURL).href;
+            }
+
+            if (useResourceScheme && /^file:/i.test(resolved)) {
+              image.src = toResourceURL(resolved);
+            } else {
+              image.src = resolved;
             }
           });
 
@@ -891,7 +1007,7 @@ private func markdownPreviewHTML(autorenderPayload: MarkdownRenderPayload? = nil
             anchor.rel = "noopener noreferrer";
           });
 
-          rewriteRelativeURLs(latestPayload.baseURL);
+          rewriteRelativeURLs(latestPayload.baseURL, Boolean(latestPayload.useResourceScheme));
           blockRemoteImages();
           replaceMathPlaceholders(mathItems);
           restoreScrollProgress(previousScrollProgress);
